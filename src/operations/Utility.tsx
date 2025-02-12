@@ -121,3 +121,26 @@ export const Sort: Operation = {
     return { result: input.split("\n").sort().join("\n") };
   },
 };
+
+export const ExtractRegex: Operation = {
+  name: "Extract Regex",
+  description: "Extract a regex pattern",
+  category: "search",
+  options: [
+    {
+      type: "string",
+      name: "Pattern",
+      default: "",
+    },
+  ],
+  run: (input, options) => {
+    if (options === undefined) return { result: "" };
+    return {
+      result: input
+        .split("\n")
+        .map((line) => line.match(new RegExp(options["Pattern"], "g")) || [])
+        .flat()
+        .join("\n"),
+    };
+  },
+};

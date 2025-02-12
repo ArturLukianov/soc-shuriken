@@ -30,6 +30,7 @@ import { ExtractIPs } from "./operations/ExtractIPs";
 import { Base64Decode, Base64Encode } from "./operations/Base64";
 import {
   CutField,
+  ExtractRegex,
   Grep,
   GrepNot,
   GrepRegex,
@@ -53,12 +54,17 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog";
 import { Label } from "./components/ui/label";
-import { ExtractFieldFromHTTPLogs } from "./operations/HTTPLogs";
+import {
+  ExtractFieldFromHTTPLogs,
+  MatchHTTPField,
+  RemoveStaticHTTPContentFromLogs,
+} from "./operations/HTTPLogs";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { OperationItem } from "./components/OperationItem";
 import { UserAgentParser } from "./operations/UserAgent";
 import { ApiKeys, SettingsManager } from "./lib/settings";
 import { JSONExtract } from "./operations/JSON";
+import { LeakCheckEmails } from "./operations/LeakCheck";
 
 const operations: Operation[] = [
   AbuseIPDBCheckIPs,
@@ -76,9 +82,13 @@ const operations: Operation[] = [
   Grep,
   GrepNot,
   GrepRegex,
+  ExtractRegex,
   ExtractFieldFromHTTPLogs,
+  MatchHTTPField,
+  RemoveStaticHTTPContentFromLogs,
   UserAgentParser,
   JSONExtract,
+  LeakCheckEmails
 ];
 
 function SettingsDialog() {
@@ -224,7 +234,7 @@ function App() {
     let errors: Record<string, string> = {};
 
     for (const operation of recipe) {
-      const {result, error} = await operation.run(data, operation.state);
+      const { result, error } = await operation.run(data, operation.state);
       if (error) {
         errors[operation.id] = error;
         setErrors(errors);
@@ -252,7 +262,11 @@ function App() {
               <div className="flex-row flex w-full">
                 <SettingsDialog />
               </div>
-              <Input placeholder="Search operations..." value={search} onChange={(event) => setSearch(event.target.value)}/>
+              <Input
+                placeholder="Search operations..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
               <div className="h-[calc(100vh-9rem)] overflow-y-scroll overflow-x-hidden pe-2">
                 <OperationList operations={operations} search={search} />
               </div>
@@ -265,7 +279,11 @@ function App() {
                   Run Recipe
                 </Button>
               </div>
-              <RecipeBuilder recipe={recipe} onUpdate={setRecipe} errors={errors} />
+              <RecipeBuilder
+                recipe={recipe}
+                onUpdate={setRecipe}
+                errors={errors}
+              />
             </div>
 
             <ResizablePanelGroup

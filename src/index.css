@@ -67,7 +67,7 @@
 
 @keyframes linearGradientMove {
     100% {
-        background-position: 4px 0, -4px 100%, 0 -4px, 100% 4px;
+        background-position: 8px 0, -8px 100%, 0 -8px, 100% 8px;
     }
 } 
 
@@ -76,8 +76,8 @@
     linear-gradient(90deg, #ef4444 50%, transparent 0) repeat-x,
     linear-gradient(0deg, #ef4444 50%, transparent 0) repeat-y,
     linear-gradient(0deg, #ef4444 50%, transparent 0) repeat-y;
-  background-size: 4px 1px, 4px 1px, 1px 4px, 1px 4px;
+  background-size: 8px 2px, 8px 2px, 2px 8px, 2px 8px;
   background-position: 0 0, 0 100%, 0 0, 100% 0;
 
-  animation: linearGradientMove 0.3s infinite linear;
+  animation: linearGradientMove 0.7s infinite linear;
 }
