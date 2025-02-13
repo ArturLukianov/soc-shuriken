@@ -30,6 +30,7 @@ import { ExtractIPs } from "./operations/ExtractIPs";
 import { Base64Decode, Base64Encode } from "./operations/Base64";
 import {
   CutField,
+  DuplicateLines,
   ExtractRegex,
   Grep,
   GrepNot,
@@ -88,7 +89,8 @@ const operations: Operation[] = [
   RemoveStaticHTTPContentFromLogs,
   UserAgentParser,
   JSONExtract,
-  LeakCheckEmails
+  LeakCheckEmails,
+  DuplicateLines
 ];
 
 function SettingsDialog() {
