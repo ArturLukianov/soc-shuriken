@@ -21,9 +21,7 @@ export const DuplicateLines: Operation = {
       seen.set(line, (seen.get(line) || 0) + 1);
     }
     
-    return {
-      result: lines.filter(line => seen.get(line) > 1).join("\n")
-    };
+    return { result: [...new Set(lines.filter(line => seen.get(line) > 1))].join("\n") };
   },
 };
 
