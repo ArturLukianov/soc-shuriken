@@ -9,6 +9,24 @@ export const UniqueLines: Operation = {
   },
 };
 
+export const DuplicateLines: Operation = {
+  name: "Duplicate Lines",
+  description: "Show duplicate lines",
+  category: "utility",
+  run: (input) => {
+    const lines = input.split("\n");
+    const seen = new Map();
+    
+    for (const line of lines) {
+      seen.set(line, (seen.get(line) || 0) + 1);
+    }
+    
+    return {
+      result: lines.filter(line => seen.get(line) > 1).join("\n")
+    };
+  },
+};
+
 export const SquashSpaces: Operation = {
   name: "Squash Spaces",
   description: "Remove extra spaces",
