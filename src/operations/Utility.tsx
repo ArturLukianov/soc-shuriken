@@ -43,7 +43,7 @@ export const JoinVia: Operation = {
       select: ["One Line", "Multiple Lines"],
     },
   ],
-  run: (input, options) => {
+  run: (input: string, options?: JoinViaOptions): { result: string } => {
     if (!options) return { result: "" };
     const lines = input.split("\n").filter(line => line.trim() !== "");
     
@@ -73,17 +73,15 @@ export const JoinVia: Operation = {
     }
     
     if (options["Representation"] === "One Line") {
-      result = prefix + lines.map(line => '"' + line + '"').join(separator) + suffix;
+      result = prefix + lines.map(line => `"${line}"`).join(separator) + suffix;
     } else {
-      let multilineSeparator = "\n" + separator.trim() + " ";
-      result = prefix + "\n  " + lines.map(line => '"' + line + '"').join(multilineSeparator) + "\n" + suffix;
+      const multilineSeparator = "\n" + separator.trim() + " ";
+      result = prefix + "\n  " + lines.map(line => `"${line}"`).join(multilineSeparator) + "\n" + suffix;
     }
     
     return { result };
   },
 };
-
-
 
 export const SquashSpaces: Operation = {
   name: "Squash Spaces",
