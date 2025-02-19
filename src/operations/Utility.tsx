@@ -47,30 +47,42 @@ export const JoinVia: Operation = {
     if (!options) return { result: "" };
     const lines = input.split("\n").filter(line => line.trim() !== "");
     
-    let result;
+    let result = "";
+    let separator = "";
+    let prefix = "";
+    let suffix = "";
+
     switch (options["Join method"]) {
       case "List":
-        result = options["Representation"] === "One Line"
-          ? "[" + lines.map(line => '"' + line + '"').join(", ") + "]"
-          : "[\n  " + lines.map(line => '"' + line + '"').join(",\n  ") + "\n]";
+        prefix = "[";
+        suffix = "]";
+        separator = ", ";
         break;
       case "OR":
-        result = options["Representation"] === "One Line"
-          ? "(" + lines.map(line => '"' + line + '"').join(" OR ") + ")"
-          : "(\n  " + lines.map(line => '"' + line + '"').join("\nOR ") + "\n)";
+        prefix = "(";
+        suffix = ")";
+        separator = " OR ";
         break;
       case "AND":
-        result = options["Representation"] === "One Line"
-          ? "(" + lines.map(line => '"' + line + '"').join(" AND ") + ")"
-          : "(\n  " + lines.map(line => '"' + line + '"').join("\nAND ") + "\n)";
+        prefix = "(";
+        suffix = ")";
+        separator = " AND ";
         break;
       default:
-        result = "";
+        return { result: "" };
+    }
+    
+    if (options["Representation"] === "One Line") {
+      result = prefix + lines.map(line => '"' + line + '"').join(separator) + suffix;
+    } else {
+      let multilineSeparator = "\n" + separator.trim() + " ";
+      result = prefix + "\n  " + lines.map(line => '"' + line + '"').join(multilineSeparator) + "\n" + suffix;
     }
     
     return { result };
   },
 };
+
 
 
 export const SquashSpaces: Operation = {
