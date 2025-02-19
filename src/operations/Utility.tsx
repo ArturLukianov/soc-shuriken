@@ -25,64 +25,6 @@ export const DuplicateLines: Operation = {
   },
 };
 
-export const JoinVia: Operation = {
-  name: "Join via",
-  description: "Join lines with different methods and representations",
-  category: "utility",
-  options: [
-    {
-      name: "Join method",
-      type: "select",
-      default: "List",
-      select: ["List", "OR", "AND"],
-    },
-    {
-      name: "Representation",
-      type: "select",
-      default: "One Line",
-      select: ["One Line", "Multiple Lines"],
-    },
-  ],
-  run: (input: string, options?: JoinViaOptions): { result: string } => {
-    if (!options) return { result: "" };
-    const lines = input.split("\n").filter(line => line.trim() !== "");
-    
-    let result = "";
-    let separator = "";
-    let prefix = "";
-    let suffix = "";
-
-    switch (options["Join method"]) {
-      case "List":
-        prefix = "[";
-        suffix = "]";
-        separator = ", ";
-        break;
-      case "OR":
-        prefix = "(";
-        suffix = ")";
-        separator = " OR ";
-        break;
-      case "AND":
-        prefix = "(";
-        suffix = ")";
-        separator = " AND ";
-        break;
-      default:
-        return { result: "" };
-    }
-    
-    if (options["Representation"] === "One Line") {
-      result = prefix + lines.map(line => `"${line}"`).join(separator) + suffix;
-    } else {
-      const multilineSeparator = "\n" + separator.trim() + " ";
-      result = prefix + "\n  " + lines.map(line => `"${line}"`).join(multilineSeparator) + "\n" + suffix;
-    }
-    
-    return { result };
-  },
-};
-
 export const SquashSpaces: Operation = {
   name: "Squash Spaces",
   description: "Remove extra spaces",
