@@ -31,7 +31,7 @@ export const MakeList: Operation = {
   category: "utility",
   run: (input) => {
     const lines = input.split("\n").filter(line => line.trim() !== "");
-    return { reuslt: lines.map(line => '"'+line+'"').join(", ").toString };
+    return { reuslt: lines.map(line => "\""+line+"\"").join(", ").toString };
   },
 };
 
