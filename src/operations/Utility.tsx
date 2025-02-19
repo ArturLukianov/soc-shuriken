@@ -25,26 +25,6 @@ export const DuplicateLines: Operation = {
   },
 };
 
-import { Operation } from "@/lib/types";
-
-export const DuplicateLines: Operation = {
-  name: "Duplicate Lines",
-  description: "Find duplicate lines",
-  category: "utility",
-  run: (input) => {
-    const lines = input.split("\n");
-    const seen = new Map();
-    
-    for (const line of lines) {
-      seen.set(line, (seen.get(line) || 0) + 1);
-    }
-    
-    return {
-      result: lines.filter(line => seen.get(line) > 1).join("\n")
-    };
-  },
-};
-
 export const JoinVia: Operation = {
   name: "Join via",
   description: "Join lines with different methods and representations",
