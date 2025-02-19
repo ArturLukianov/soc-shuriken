@@ -90,7 +90,8 @@ const operations: Operation[] = [
   UserAgentParser,
   JSONExtract,
   LeakCheckEmails,
-  DuplicateLines
+  DuplicateLines,
+  JoinVia
 ];
 
 function SettingsDialog() {
