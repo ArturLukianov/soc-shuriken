@@ -25,22 +25,42 @@ export const DuplicateLines: Operation = {
   },
 };
 
+import { Operation } from "@/lib/types";
+
+export const DuplicateLines: Operation = {
+  name: "Duplicate Lines",
+  description: "Find duplicate lines",
+  category: "utility",
+  run: (input) => {
+    const lines = input.split("\n");
+    const seen = new Map();
+    
+    for (const line of lines) {
+      seen.set(line, (seen.get(line) || 0) + 1);
+    }
+    
+    return {
+      result: lines.filter(line => seen.get(line) > 1).join("\n")
+    };
+  },
+};
+
 export const JoinVia: Operation = {
   name: "Join via",
   description: "Join lines with different methods and representations",
   category: "utility",
   options: [
     {
-      type: "string",
       name: "Join method",
+      type: "select",
       default: "List",
-      values: ["List", "OR", "AND"],
+      select: ["List", "OR", "AND"],
     },
     {
-      type: "string",
       name: "Representation",
+      type: "select",
       default: "One Line",
-      values: ["One Line", "Multiple Lines"],
+      select: ["One Line", "Multiple Lines"],
     },
   ],
   run: (input, options) => {
@@ -53,21 +73,21 @@ export const JoinVia: Operation = {
         result = options["Representation"] === "One Line"
           ? `[${lines.map(line => `"${line}"`).join(", ")}]`
           : `[
-${lines.map(line => `"${line}"`).join(",\n")}
+${lines.map(line => `  "${line}"`).join(",\n")}
 ]`;
         break;
       case "OR":
         result = options["Representation"] === "One Line"
           ? `(${lines.map(line => `"${line}"`).join(" OR ")})`
           : `(
-${lines.map(line => `"${line}"`).join("\nOR ")}
+${lines.map(line => `  "${line}"`).join("\nOR ")}
 )`;
         break;
       case "AND":
         result = options["Representation"] === "One Line"
           ? `(${lines.map(line => `"${line}"`).join(" AND ")})`
           : `(
-${lines.map(line => `"${line}"`).join("\nAND ")}
+${lines.map(line => `  "${line}"`).join("\nAND ")}
 )`;
         break;
       default:
