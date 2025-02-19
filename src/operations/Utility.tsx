@@ -25,16 +25,6 @@ export const DuplicateLines: Operation = {
   },
 };
 
-export const MakeList: Operation = {
-  name: "Make list",
-  description: "Make list",
-  category: "utility",
-  run: (input) => {
-    const lines = input.split("\n").filter(line => line.trim() !== "");
-    return { reuslt: lines.map(line => "\"".concat(line).concat("\"")).join(", ").toString };
-  },
-};
-
 export const SquashSpaces: Operation = {
   name: "Squash Spaces",
   description: "Remove extra spaces",
