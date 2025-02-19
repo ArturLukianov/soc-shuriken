@@ -51,24 +51,18 @@ export const JoinVia: Operation = {
     switch (options["Join method"]) {
       case "List":
         result = options["Representation"] === "One Line"
-          ? `[${lines.map(line => `"${line}"`).join(", ")}]`
-          : `[
-${lines.map(line => `  "${line}"`).join(",\n")}
-]`;
+          ? "[" + lines.map(line => '"' + line + '"').join(", ") + "]"
+          : "[\n  " + lines.map(line => '"' + line + '"').join(",\n  ") + "\n]";
         break;
       case "OR":
         result = options["Representation"] === "One Line"
-          ? `(${lines.map(line => `"${line}"`).join(" OR ")})`
-          : `(
-${lines.map(line => `  "${line}"`).join("\nOR ")}
-)`;
+          ? "(" + lines.map(line => '"' + line + '"').join(" OR ") + ")"
+          : "(\n  " + lines.map(line => '"' + line + '"').join("\nOR ") + "\n)";
         break;
       case "AND":
         result = options["Representation"] === "One Line"
-          ? `(${lines.map(line => `"${line}"`).join(" AND ")})`
-          : `(
-${lines.map(line => `  "${line}"`).join("\nAND ")}
-)`;
+          ? "(" + lines.map(line => '"' + line + '"').join(" AND ") + ")"
+          : "(\n  " + lines.map(line => '"' + line + '"').join("\nAND ") + "\n)";
         break;
       default:
         result = "";
@@ -77,6 +71,7 @@ ${lines.map(line => `  "${line}"`).join("\nAND ")}
     return { result };
   },
 };
+
 
 export const SquashSpaces: Operation = {
   name: "Squash Spaces",
