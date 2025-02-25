@@ -19,7 +19,7 @@ export const OpenTIPLookup: Operation = {
     const results = await Promise.all(
       ips.map(async (ip) => {
         try {
-          const response = await fetch(`https://opentip.kaspersky.com/api/v1/ip/${ip}`, {
+          const response = await fetch(`https://opentip.kaspersky.com/api/v1/search/ip?request=${ip}`, {
             headers: { Authorization: `Bearer ${keys.opentip}` },
           });
 
