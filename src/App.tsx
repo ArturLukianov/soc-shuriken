@@ -40,6 +40,7 @@ import {
   UniqueLines,
 } from "./operations/Utility";
 import { AbuseIPDBCheckIPs } from "./operations/AbuseIPDB";
+import { OpenTIPLookup } from "./operations/OpenTip";
 import { randomUUID } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { XORWithKey } from "./operations/XOR";
@@ -69,6 +70,7 @@ import { LeakCheckEmails } from "./operations/LeakCheck";
 
 const operations: Operation[] = [
   AbuseIPDBCheckIPs,
+  OpenTIPLookup,
   ExtractIPs,
   Base64Decode,
   Base64Encode,
@@ -134,6 +136,26 @@ function SettingsDialog() {
               value={keys.abuseIPDB || ""}
               onChange={(e) => setKeys({ ...keys, abuseIPDB: e.target.value })}
               placeholder="Enter AbuseIPDB API key"
+            />
+          </div>
+
+          <div>
+            <Label
+              htmlFor="name"
+              className="text-right text-sm flex flex-row gap-1 items-center"
+            >
+              <KeyIcon
+                size={24}
+                className="bg-blue-900 text-blue-300 p-1 rounded-lg"
+              />
+              OpenTIP API Key:
+            </Label>
+            <Input
+              id="name"
+              className="col-span-3 mt-3"
+              value={keys.opentip || ""}
+              onChange={(e) => setKeys({ ...keys, opentip: e.target.value })}
+              placeholder="Enter VirusTotal API key"
             />
           </div>
 

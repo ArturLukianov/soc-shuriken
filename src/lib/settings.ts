@@ -3,6 +3,7 @@ export interface ApiKeys {
   abuseIPDB?: string;
   virusTotal?: string;
   abusech?: string;
+  opentip?: string;
 }
 
 export class SettingsManager {
