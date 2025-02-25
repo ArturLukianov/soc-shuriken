@@ -67,11 +67,13 @@ import { UserAgentParser } from "./operations/UserAgent";
 import { ApiKeys, SettingsManager } from "./lib/settings";
 import { JSONExtract } from "./operations/JSON";
 import { LeakCheckEmails } from "./operations/LeakCheck";
+import { ExtractEmails } from "./operations/ExtractEmails";
 
 const operations: Operation[] = [
   AbuseIPDBCheckIPs,
   OpenTIPLookup,
   ExtractIPs,
+  ExtractEmails,
   Base64Decode,
   Base64Encode,
   // SHA256Hash,
