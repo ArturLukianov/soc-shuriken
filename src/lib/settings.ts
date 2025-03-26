@@ -5,6 +5,7 @@ export interface ApiKeys {
   abusech?: string;
   opentip?: string;
   ipinfo?: string;
+  threatbook?: string;
 }
 
 export class SettingsManager {

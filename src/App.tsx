@@ -69,6 +69,7 @@ import { JSONExtract } from "./operations/JSON";
 import { LeakCheckEmails } from "./operations/LeakCheck";
 import { ExtractEmails } from "./operations/ExtractEmails";
 import { IPInfo } from "./operations/IPInfo";
+import { ThreatbookCheckIP } from "./operations/ThreatBook";
 
 const operations: Operation[] = [
   AbuseIPDBCheckIPs,
@@ -97,6 +98,7 @@ const operations: Operation[] = [
   LeakCheckEmails,
   DuplicateLines,
   IPInfo,
+  ThreatbookCheckIP,
 ];
 
 function SettingsDialog() {
@@ -220,6 +222,26 @@ function SettingsDialog() {
               value={keys.ipinfo || ""}
               onChange={(e) => setKeys({ ...keys, ipinfo: e.target.value })}
               placeholder="Enter ipinfo API key"
+            />
+          </div>
+
+          <div>
+            <Label
+              htmlFor="name"
+              className="text-right text-sm flex flex-row gap-1 items-center"
+            >
+              <KeyIcon
+                size={24}
+                className="bg-blue-900 text-blue-300 p-1 rounded-lg"
+              />
+              ThreatBook API key:
+            </Label>
+            <Input
+              id="name"
+              className="col-span-3 mt-3"
+              value={keys.threatbook || ""}
+              onChange={(e) => setKeys({ ...keys, threatbook: e.target.value })}
+              placeholder="Enter ThreatBook API key"
             />
           </div>
         </div>
