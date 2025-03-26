@@ -4,10 +4,11 @@ export interface ApiKeys {
   virusTotal?: string;
   abusech?: string;
   opentip?: string;
+  ipinfo?: string;
 }
 
 export class SettingsManager {
-  private static STORAGE_KEY = 'soc-tool-settings';
+  private static STORAGE_KEY = "soc-tool-settings";
 
   static saveKeys(keys: ApiKeys): void {
     try {
@@ -15,13 +16,13 @@ export class SettingsManager {
       const encoded = btoa(JSON.stringify(keys));
       localStorage.setItem(this.STORAGE_KEY, encoded);
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error("Error saving settings:", error);
     }
   }
 
   static getKeys(): ApiKeys {
     try {
-      const encoded = localStorage.getItem(this.STORAGE_KEY) || '';
+      const encoded = localStorage.getItem(this.STORAGE_KEY) || "";
       return JSON.parse(atob(encoded)) || {};
     } catch (error) {
       return {};

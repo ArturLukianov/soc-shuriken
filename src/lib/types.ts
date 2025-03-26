@@ -5,6 +5,7 @@ export type OperationCategory =
   | "crypto"
   | "malware"
   | "web"
+  | "network"
   | "utility"
   | "convert";
 
@@ -20,18 +21,21 @@ export type OperationOption = {
 export type OperationResult = {
   result: string;
   error?: string;
-}
+};
 
 export type Operation = {
   name: string;
   description: string;
   category: OperationCategory;
   options?: OperationOption[];
-  run: (input: string, options?: Record<string, string>) => OperationResult | Promise<OperationResult>;
+  run: (
+    input: string,
+    options?: Record<string, string>,
+  ) => OperationResult | Promise<OperationResult>;
 };
 
 export type RecipeOperation = Operation & {
   id: string;
   error?: string;
   state: Record<string, string>;
-}
+};

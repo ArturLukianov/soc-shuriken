@@ -68,6 +68,7 @@ import { ApiKeys, SettingsManager } from "./lib/settings";
 import { JSONExtract } from "./operations/JSON";
 import { LeakCheckEmails } from "./operations/LeakCheck";
 import { ExtractEmails } from "./operations/ExtractEmails";
+import { IPInfo } from "./operations/IPInfo";
 
 const operations: Operation[] = [
   AbuseIPDBCheckIPs,
@@ -94,7 +95,8 @@ const operations: Operation[] = [
   UserAgentParser,
   JSONExtract,
   LeakCheckEmails,
-  DuplicateLines
+  DuplicateLines,
+  IPInfo,
 ];
 
 function SettingsDialog() {
@@ -200,6 +202,26 @@ function SettingsDialog() {
               placeholder="Enter abusech API key"
             />
           </div>
+
+          <div>
+            <Label
+              htmlFor="name"
+              className="text-right text-sm flex flex-row gap-1 items-center"
+            >
+              <KeyIcon
+                size={24}
+                className="bg-blue-900 text-blue-300 p-1 rounded-lg"
+              />
+              IPinfo.io key:
+            </Label>
+            <Input
+              id="name"
+              className="col-span-3 mt-3"
+              value={keys.ipinfo || ""}
+              onChange={(e) => setKeys({ ...keys, ipinfo: e.target.value })}
+              placeholder="Enter ipinfo API key"
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button type="submit" onClick={handleSave}>
@@ -220,7 +242,7 @@ function App() {
   const [search, setSearch] = useState("");
 
   const [activeOperation, setActiveOperation] = useState<Operation | null>(
-    null
+    null,
   );
 
   const handleDragStart = (event: any) => {

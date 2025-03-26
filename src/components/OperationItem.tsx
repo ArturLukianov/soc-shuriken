@@ -9,6 +9,7 @@ import {
   GripVertical,
   HammerIcon,
   LockIcon,
+  NetworkIcon,
   SearchIcon,
 } from "lucide-react";
 import { Operation } from "@/lib/types";
@@ -23,9 +24,8 @@ export const categoryIcons = {
   utility: (
     <HammerIcon className="rounded-lg p-1 bg-yellow-900 text-yellow-300" />
   ),
-  convert: (
-    <CodeIcon className="rounded-lg p-1 bg-green-900 text-green-300" />
-  )
+  convert: <CodeIcon className="rounded-lg p-1 bg-green-900 text-green-300" />,
+  network: <NetworkIcon className="rounded-lg p-1 bg-gray-900 text-gray-300" />,
 };
 
 export function OperationItem({ operation }: { operation: Operation }) {
@@ -44,7 +44,7 @@ export function OperationItem({ operation }: { operation: Operation }) {
       }}
       className={cn(
         "flex items-center gap-3 bg-black p-3 rounded-lg",
-        "border transition-colors"
+        "border transition-colors",
       )}
     >
       <Button
