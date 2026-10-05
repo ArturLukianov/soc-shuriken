@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   closestCenter,
   CollisionDetection,
@@ -16,10 +16,7 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import { ThemeProvider } from "./components/theme-provider";
@@ -31,29 +28,18 @@ import {
   StepCard,
 } from "./components/RecipeBuilder";
 import { OperationList } from "./components/OperationList";
-import { CakeSliceIcon, CogIcon, KeyIcon } from "lucide-react";
+import {
+  CakeSliceIcon,
+  CheckIcon,
+  CogIcon,
+  KeyIcon,
+  Share2Icon,
+} from "lucide-react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "./components/ui/resizable";
-import { ExtractIPs } from "./operations/ExtractIPs";
-import { Base64Decode, Base64Encode } from "./operations/Base64";
-import {
-  CutField,
-  DuplicateLines,
-  ExtractRegex,
-  Grep,
-  GrepNot,
-  GrepRegex,
-  Sort,
-  SquashSpaces,
-  UniqueLines,
-} from "./operations/Utility";
-import { AbuseIPDBCheckIPs } from "./operations/AbuseIPDB";
-import { OpenTIPLookup } from "./operations/OpenTip";
-import { v4 as uuidv4 } from "uuid";
-import { XORWithKey } from "./operations/XOR";
 import {
   Dialog,
   DialogContent,
@@ -64,49 +50,10 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog";
 import { Label } from "./components/ui/label";
-import {
-  ExtractFieldFromHTTPLogs,
-  MatchHTTPField,
-  RemoveStaticHTTPContentFromLogs,
-} from "./operations/HTTPLogs";
 import { OperationCard } from "./components/OperationItem";
-import { UserAgentParser } from "./operations/UserAgent";
 import { ApiKeys, SettingsManager } from "./lib/settings";
-import { JSONExtract } from "./operations/JSON";
-import { LeakCheckEmails } from "./operations/LeakCheck";
-import { ExtractEmails } from "./operations/ExtractEmails";
-import { IPInfo } from "./operations/IPInfo";
-import { ThreatbookCheckIP } from "./operations/ThreatBook";
-
-const operations: Operation[] = [
-  AbuseIPDBCheckIPs,
-  OpenTIPLookup,
-  ExtractIPs,
-  ExtractEmails,
-  Base64Decode,
-  Base64Encode,
-  // SHA256Hash,
-  // SHA512Hash,
-  // MD5Hash,
-  XORWithKey,
-  UniqueLines,
-  CutField,
-  SquashSpaces,
-  Sort,
-  Grep,
-  GrepNot,
-  GrepRegex,
-  ExtractRegex,
-  ExtractFieldFromHTTPLogs,
-  MatchHTTPField,
-  RemoveStaticHTTPContentFromLogs,
-  UserAgentParser,
-  JSONExtract,
-  LeakCheckEmails,
-  DuplicateLines,
-  IPInfo,
-  ThreatbookCheckIP,
-];
+import { operations } from "./operations";
+import { createStep, readUrlState, writeUrlState } from "./lib/recipe";
 
 type ActiveDrag =
   | { type: "operation"; operation: Operation }
@@ -335,6 +282,51 @@ function App() {
   // Kept after the drag ends so the overlay's drop animation can finish
   const [lastDragType, setLastDragType] = useState<ActiveDrag["type"]>();
 
+  // Recipe and input are persisted in the URL hash (see lib/recipe.ts)
+  const [urlLoaded, setUrlLoaded] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [inputOmitted, setInputOmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const loaded = await readUrlState();
+      setRecipe(loaded.recipe);
+      setInput(loaded.input);
+      setErrors({});
+      setNotice(loaded.warnings.length > 0 ? loaded.warnings.join(" ") : null);
+      setUrlLoaded(true);
+    };
+    load();
+    // Fires when a different link is pasted into this tab
+    window.addEventListener("hashchange", load);
+    return () => window.removeEventListener("hashchange", load);
+  }, []);
+
+  useEffect(() => {
+    if (!urlLoaded) return;
+    const timeout = setTimeout(async () => {
+      const { inputOmitted } = await writeUrlState(recipe, input);
+      setInputOmitted(inputOmitted);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [recipe, input, urlLoaded]);
+
+  const shareLink = async () => {
+    // Flush pending edits before copying
+    const { inputOmitted } = await writeUrlState(recipe, input);
+    setInputOmitted(inputOmitted);
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setNotice(
+        "Could not copy to clipboard; copy the link from the address bar.",
+      );
+    }
+  };
+
   const sensors = useSensors(
     // Small distance so clicks on step buttons/inputs don't start a drag
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -385,16 +377,7 @@ function App() {
     const operation: Operation | undefined = active.data.current?.operation;
     if (!operation || over.id !== RECIPE_AREA_ID) return;
 
-    const state: Record<string, string> = {};
-    for (const option of operation.options ?? []) {
-      state[option.name] = String(option.default);
-    }
-
-    const newOperation: RecipeOperation = {
-      id: uuidv4(),
-      state: state,
-      ...operation,
-    };
+    const newOperation = createStep(operation);
     const insertAt = index ?? recipe.length;
     setRecipe([
       ...recipe.slice(0, insertAt),
@@ -460,12 +443,41 @@ function App() {
             </div>
 
             <div className="mt-2">
-              <div className="w-full mb-3 flex flex-row space-x-3">
-                <Button className="w-full" size="lg" onClick={runRecipe}>
+              <div className="w-full mb-3 flex flex-row gap-2">
+                <Button className="flex-1" size="lg" onClick={runRecipe}>
                   <CakeSliceIcon />
                   Run Recipe
                 </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="px-4"
+                  onClick={shareLink}
+                  title="Copy a link to this recipe and input"
+                >
+                  {copied ? <CheckIcon /> : <Share2Icon />}
+                  {copied ? "Copied" : "Share"}
+                </Button>
               </div>
+              {(notice || inputOmitted) && (
+                <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-900 bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
+                  <span className="flex-1">
+                    {notice}
+                    {notice && inputOmitted && " "}
+                    {inputOmitted &&
+                      "Input is too large to store in the URL: it won't survive a reload or be included in shared links."}
+                  </span>
+                  {notice && (
+                    <button
+                      className="text-amber-500 hover:text-amber-300"
+                      aria-label="Dismiss"
+                      onClick={() => setNotice(null)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
               <RecipeBuilder
                 recipe={recipe}
                 onUpdate={setRecipe}
