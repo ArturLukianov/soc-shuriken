@@ -37,5 +37,6 @@ export type Operation = {
 export type RecipeOperation = Operation & {
   id: string;
   error?: string;
+  disabled?: boolean;
   state: Record<string, string>;
 };

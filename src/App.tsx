@@ -2,10 +2,14 @@ import { useState } from "react";
 import {
   closestCenter,
   CollisionDetection,
+  defaultDropAnimationSideEffects,
   DndContext,
   DragEndEvent,
+  DragMoveEvent,
   DragOverlay,
   DragStartEvent,
+  DropAnimation,
+  Modifier,
   KeyboardSensor,
   PointerSensor,
   pointerWithin,
@@ -21,7 +25,11 @@ import { Button } from "./components/ui/button";
 import { ThemeProvider } from "./components/theme-provider";
 import { Editor } from "@monaco-editor/react";
 import { Operation, RecipeOperation } from "./lib/types";
-import { RECIPE_AREA_ID, RecipeBuilder } from "./components/RecipeBuilder";
+import {
+  RECIPE_AREA_ID,
+  RecipeBuilder,
+  StepCard,
+} from "./components/RecipeBuilder";
 import { OperationList } from "./components/OperationList";
 import { CakeSliceIcon, CogIcon, KeyIcon } from "lucide-react";
 import {
@@ -100,8 +108,13 @@ const operations: Operation[] = [
   ThreatbookCheckIP,
 ];
 
-// Palette drags only count when the pointer is actually inside the recipe;
-// reordering steps snaps to the nearest step.
+type ActiveDrag =
+  | { type: "operation"; operation: Operation }
+  | { type: "step"; step: RecipeOperation };
+
+// Reordering steps snaps to the nearest step; palette drags only count when
+// the pointer is inside the recipe area (the insert position is computed
+// separately from the pointer, see getInsertIndex).
 const collisionDetection: CollisionDetection = (args) => {
   if (args.active.data.current?.type === "step") {
     return closestCenter({
@@ -111,7 +124,48 @@ const collisionDetection: CollisionDetection = (args) => {
       ),
     });
   }
-  return pointerWithin(args);
+  return pointerWithin({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(
+      (container) => container.id === RECIPE_AREA_ID,
+    ),
+  });
+};
+
+// Index of the first step whose vertical midpoint is below the pointer
+function getInsertIndex({ active, activatorEvent, delta }: DragMoveEvent) {
+  let y: number;
+  if (activatorEvent instanceof PointerEvent) {
+    y = activatorEvent.clientY + delta.y;
+  } else {
+    const rect = active.rect.current.translated;
+    if (!rect) return null;
+    y = rect.top + rect.height / 2;
+  }
+  const steps = document.querySelectorAll("[data-recipe-step]");
+  let index = 0;
+  for (const step of steps) {
+    const rect = step.getBoundingClientRect();
+    if (y > rect.top + rect.height / 2) index++;
+  }
+  return index;
+}
+
+// Only the recipe list may auto-scroll; otherwise dragging near the bottom of
+// the screen scrolls the operations list out from under the cursor
+const autoScroll = {
+  canScroll: (element: Element) => element.hasAttribute("data-recipe-scroll"),
+};
+
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  x: 0,
+});
+
+const stepDropAnimation: DropAnimation = {
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: "0.3" } },
+  }),
 };
 
 function SettingsDialog() {
@@ -276,9 +330,10 @@ function App() {
   const [state, setState] = useState("idle");
   const [search, setSearch] = useState("");
 
-  const [activeOperation, setActiveOperation] = useState<Operation | null>(
-    null,
-  );
+  const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
+  // Kept after the drag ends so the overlay's drop animation can finish
+  const [lastDragType, setLastDragType] = useState<ActiveDrag["type"]>();
 
   const sensors = useSensors(
     // Small distance so clicks on step buttons/inputs don't start a drag
@@ -288,15 +343,33 @@ function App() {
     }),
   );
 
-  const handleDragStart = (event: DragStartEvent) => {
-    if (event.active.data.current?.type === "operation") {
-      setActiveOperation(event.active.data.current.operation);
+  const resetDrag = () => {
+    setActiveDrag(null);
+    setInsertIndex(null);
+  };
+
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const data = active.data.current;
+    setLastDragType(data?.type);
+    if (data?.type === "operation") {
+      setActiveDrag({ type: "operation", operation: data.operation });
+    } else if (data?.type === "step") {
+      setActiveDrag({ type: "step", step: data.operation });
     }
+  };
+
+  // While dragging from the palette, track where the operation would land
+  const handleDragMove = (event: DragMoveEvent) => {
+    if (event.active.data.current?.type !== "operation") return;
+    const next =
+      event.over?.id === RECIPE_AREA_ID ? getInsertIndex(event) : null;
+    if (next !== insertIndex) setInsertIndex(next);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveOperation(null);
+    const index = insertIndex;
+    resetDrag();
     if (!over) return;
 
     if (active.data.current?.type === "step") {
@@ -310,11 +383,7 @@ function App() {
     }
 
     const operation: Operation | undefined = active.data.current?.operation;
-    if (!operation) return;
-
-    // Dropped onto an existing step: insert before it; otherwise append
-    const overIndex = recipe.findIndex((op) => op.id === over.id);
-    if (over.id !== RECIPE_AREA_ID && overIndex === -1) return;
+    if (!operation || over.id !== RECIPE_AREA_ID) return;
 
     const state: Record<string, string> = {};
     for (const option of operation.options ?? []) {
@@ -326,7 +395,7 @@ function App() {
       state: state,
       ...operation,
     };
-    const insertAt = overIndex === -1 ? recipe.length : overIndex;
+    const insertAt = index ?? recipe.length;
     setRecipe([
       ...recipe.slice(0, insertAt),
       newOperation,
@@ -342,6 +411,7 @@ function App() {
 
     try {
       for (const operation of recipe) {
+        if (operation.disabled) continue;
         try {
           const { result, error } = await operation.run(data, operation.state);
           if (error) {
@@ -364,8 +434,10 @@ function App() {
   return (
     <DndContext
       sensors={sensors}
+      autoScroll={autoScroll}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveOperation(null)}
+      onDragCancel={resetDrag}
       collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
     >
@@ -398,6 +470,7 @@ function App() {
                 recipe={recipe}
                 onUpdate={setRecipe}
                 errors={errors}
+                insertIndex={insertIndex}
               />
             </div>
 
@@ -448,8 +521,27 @@ function App() {
           </div>
         </div>
 
-        <DragOverlay zIndex={999}>
-          {activeOperation && <OperationCard operation={activeOperation} />}
+        <DragOverlay
+          zIndex={999}
+          // Palette cards land in the recipe, so don't animate them back
+          dropAnimation={
+            lastDragType === "operation" ? null : stepDropAnimation
+          }
+          modifiers={lastDragType === "step" ? [restrictToVerticalAxis] : []}
+        >
+          {activeDrag?.type === "step" && (
+            <StepCard
+              operation={activeDrag.step}
+              error={errors[activeDrag.step.id]}
+              className="cursor-grabbing shadow-2xl ring-1 ring-primary/40"
+            />
+          )}
+          {activeDrag?.type === "operation" && (
+            <OperationCard
+              operation={activeDrag.operation}
+              className="cursor-grabbing shadow-2xl"
+            />
+          )}
         </DragOverlay>
       </ThemeProvider>
     </DndContext>
