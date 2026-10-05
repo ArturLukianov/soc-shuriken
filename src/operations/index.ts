@@ -14,7 +14,7 @@ import {
   UniqueLines,
 } from "./Utility";
 import { AbuseIPDBCheckIPs } from "./AbuseIPDB";
-import { OpenTIPLookup } from "./OpenTip";
+import { OpenTIPHashLookup, OpenTIPLookup } from "./OpenTip";
 import { XORWithKey } from "./XOR";
 import {
   ExtractFieldFromHTTPLogs,
@@ -44,6 +44,7 @@ export const operations: Operation[] = [
   AbuseIPDBCheckIPs,
   ThreatbookCheckIP,
   OpenTIPLookup,
+  OpenTIPHashLookup,
   IPInfo,
   LeakCheckEmails,
   // Extract
