@@ -2,6 +2,7 @@ import { Operation } from "@/lib/types";
 import { ExtractIPs } from "./ExtractIPs";
 import { Base64Decode, Base64Encode } from "./Base64";
 import {
+  CountOccurrences,
   CutField,
   DuplicateLines,
   ExtractRegex,
@@ -26,18 +27,40 @@ import { LeakCheckEmails } from "./LeakCheck";
 import { ExtractEmails } from "./ExtractEmails";
 import { IPInfo } from "./IPInfo";
 import { ThreatbookCheckIP } from "./ThreatBook";
+import { DefangIOCs, ExtractIOCs, FilterPrivateIPs, RefangIOCs } from "./IOC";
+import {
+  Decompress,
+  HexDecode,
+  HexEncode,
+  PowerShellDecode,
+  URLDecode,
+  URLEncode,
+} from "./Decode";
+import { BuildKATAQuery } from "./KATA";
 
 export const operations: Operation[] = [
   AbuseIPDBCheckIPs,
   OpenTIPLookup,
+  ExtractIOCs,
   ExtractIPs,
   ExtractEmails,
+  DefangIOCs,
+  RefangIOCs,
+  FilterPrivateIPs,
+  BuildKATAQuery,
   Base64Decode,
   Base64Encode,
+  PowerShellDecode,
+  Decompress,
+  URLDecode,
+  URLEncode,
+  HexDecode,
+  HexEncode,
   // SHA256Hash,
   // SHA512Hash,
   // MD5Hash,
   XORWithKey,
+  CountOccurrences,
   UniqueLines,
   CutField,
   SquashSpaces,

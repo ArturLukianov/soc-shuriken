@@ -160,3 +160,26 @@ export const ExtractRegex: Operation = {
     };
   },
 };
+
+export const CountOccurrences: Operation = {
+  name: "Count Occurrences",
+  description:
+    "Count identical lines, most frequent first (sort | uniq -c | sort -nr)",
+  category: "utility",
+  run: (input) => {
+    const counts = new Map<string, number>();
+    for (const line of input.split("\n")) {
+      if (line.trim() === "") continue;
+      counts.set(line, (counts.get(line) ?? 0) + 1);
+    }
+    // Stable sort keeps first-seen order for equal counts
+    const sorted = [...counts].sort((a, b) => b[1] - a[1]);
+    const width = String(sorted[0]?.[1] ?? 0).length;
+    return {
+      result: sorted
+        .map(([line, count]) => `${String(count).padStart(width)} ${line}`)
+        .join("\n"),
+      info: `${sorted.length} distinct of ${[...counts.values()].reduce((a, b) => a + b, 0)} lines`,
+    };
+  },
+};

@@ -8,10 +8,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  DatabaseIcon,
   EyeIcon,
   EyeOffIcon,
   GripVertical,
+  InfoIcon,
   MessageSquareWarningIcon,
   MousePointerClickIcon,
   Trash2Icon,
@@ -321,7 +321,7 @@ export function StepCard({
 
       {info !== undefined && error === undefined && (
         <div className="flex w-full items-center gap-1.5 px-1 text-xs text-gray-400">
-          <DatabaseIcon className="h-3.5 w-3.5" />
+          <InfoIcon className="h-3.5 w-3.5 shrink-0" />
           {info}
         </div>
       )}
