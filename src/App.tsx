@@ -32,6 +32,7 @@ import {
   CakeSliceIcon,
   CheckIcon,
   CogIcon,
+  DatabaseIcon,
   KeyIcon,
   Share2Icon,
 } from "lucide-react";
@@ -52,6 +53,7 @@ import {
 import { Label } from "./components/ui/label";
 import { OperationCard } from "./components/OperationItem";
 import { ApiKeys, SettingsManager } from "./lib/settings";
+import { LookupCache } from "./lib/cache";
 import { operations } from "./operations";
 import { createStep, readUrlState, writeUrlState } from "./lib/recipe";
 
@@ -117,7 +119,13 @@ const stepDropAnimation: DropAnimation = {
 
 function SettingsDialog() {
   const [keys, setKeys] = useState<ApiKeys>(SettingsManager.getKeys());
-  const [open, onOpenChange] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [cachedCount, setCachedCount] = useState(0);
+
+  const onOpenChange = (next: boolean) => {
+    if (next) setCachedCount(LookupCache.count());
+    setOpen(next);
+  };
 
   const handleSave = () => {
     SettingsManager.saveKeys(keys);
@@ -258,6 +266,33 @@ function SettingsDialog() {
               placeholder="Enter ThreatBook API key"
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+            <div className="text-sm">
+              <div className="flex items-center gap-1">
+                <DatabaseIcon
+                  size={24}
+                  className="bg-blue-900 text-blue-300 p-1 rounded-lg"
+                />
+                Lookup cache
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                API results are reused for 24 hours.{" "}
+                {cachedCount} cached result{cachedCount === 1 ? "" : "s"}.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={cachedCount === 0}
+              onClick={() => {
+                LookupCache.clear();
+                setCachedCount(0);
+              }}
+            >
+              Clear cache
+            </Button>
+          </div>
         </div>
         <DialogFooter>
           <Button type="submit" onClick={handleSave}>
@@ -274,6 +309,7 @@ function App() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [infos, setInfos] = useState<Record<string, string>>({});
   const [state, setState] = useState("idle");
   const [search, setSearch] = useState("");
 
@@ -294,6 +330,7 @@ function App() {
       setRecipe(loaded.recipe);
       setInput(loaded.input);
       setErrors({});
+      setInfos({});
       setNotice(loaded.warnings.length > 0 ? loaded.warnings.join(" ") : null);
       setUrlLoaded(true);
     };
@@ -391,12 +428,17 @@ function App() {
     setState("wip");
 
     const errors: Record<string, string> = {};
+    const infos: Record<string, string> = {};
 
     try {
       for (const operation of recipe) {
         if (operation.disabled) continue;
         try {
-          const { result, error } = await operation.run(data, operation.state);
+          const { result, error, info } = await operation.run(
+            data,
+            operation.state,
+          );
+          if (info) infos[operation.id] = info;
           if (error) {
             errors[operation.id] = error;
             break;
@@ -410,6 +452,7 @@ function App() {
       setOutput(data);
     } finally {
       setErrors(errors);
+      setInfos(infos);
       setState("idle");
     }
   };
@@ -482,6 +525,7 @@ function App() {
                 recipe={recipe}
                 onUpdate={setRecipe}
                 errors={errors}
+                infos={infos}
                 insertIndex={insertIndex}
               />
             </div>

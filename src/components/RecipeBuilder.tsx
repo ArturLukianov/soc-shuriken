@@ -8,6 +8,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  DatabaseIcon,
   EyeIcon,
   EyeOffIcon,
   GripVertical,
@@ -37,11 +38,13 @@ export function RecipeBuilder({
   recipe,
   onUpdate,
   errors,
+  infos,
   insertIndex,
 }: {
   recipe: RecipeOperation[];
   onUpdate: (ops: RecipeOperation[]) => void;
   errors: Record<string, string>;
+  infos: Record<string, string>;
   // Where a palette operation being dragged would land, or null
   insertIndex: number | null;
 }) {
@@ -101,6 +104,7 @@ export function RecipeBuilder({
                 operation={op}
                 index={index}
                 error={errors[op.id]}
+                info={infos[op.id]}
                 dropIndicator={
                   insertIndex === index
                     ? "before"
@@ -180,6 +184,7 @@ type StepCardProps = {
   operation: RecipeOperation;
   index?: number;
   error?: string;
+  info?: string;
   onChange?: (patch: Partial<RecipeOperation>) => void;
   onRemove?: () => void;
 };
@@ -188,6 +193,7 @@ export function StepCard({
   operation,
   index,
   error,
+  info,
   onChange,
   onRemove,
   className,
@@ -310,6 +316,13 @@ export function StepCard({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {info !== undefined && error === undefined && (
+        <div className="flex w-full items-center gap-1.5 px-1 text-xs text-gray-400">
+          <DatabaseIcon className="h-3.5 w-3.5" />
+          {info}
         </div>
       )}
 

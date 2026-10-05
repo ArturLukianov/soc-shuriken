@@ -21,6 +21,8 @@ export type OperationOption = {
 export type OperationResult = {
   result: string;
   error?: string;
+  // Short status shown under the step, e.g. "3 cached · 2 fetched"
+  info?: string;
 };
 
 export type Operation = {
