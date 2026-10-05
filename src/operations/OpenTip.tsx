@@ -88,11 +88,26 @@ export const OpenTIPLookup: Operation = {
         outcome(await opentipSearch("ip", ip, apiKey), ip, (data) => {
           const info = data.IpGeneralInfo ?? {};
           const asn = data.IpWhoIs?.Asn?.[0];
+          const net = data.IpWhoIs?.Net;
+          const categories: string[] = (info.CategoriesWithZone ?? [])
+            .map(
+              (category: { Name?: string; Zone?: string }) =>
+                category.Name &&
+                `${category.Name}${category.Zone ? ` [${category.Zone}]` : ""}`,
+            )
+            .filter(Boolean);
+          const range =
+            net?.RangeStart && net?.RangeEnd
+              ? `${net.RangeStart} - ${net.RangeEnd}`
+              : undefined;
           return [
             info.Status,
             info.CountryCode,
             asn &&
               `AS${asn.Number}${asn.Description?.length ? ` ${asn.Description.join(" ")}` : ""}`,
+            categories.length > 0 ? categories.join("; ") : undefined,
+            net?.Description && `Net: ${net.Description}`,
+            range && `Range: ${range}`,
           ];
         }),
     });
