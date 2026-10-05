@@ -1,13 +1,7 @@
-// lib/operations.ts
+// lib/types.ts
+import type { OperationCategory } from "./categories";
 
-export type OperationCategory =
-  | "search"
-  | "crypto"
-  | "malware"
-  | "web"
-  | "network"
-  | "utility"
-  | "convert";
+export type { OperationCategory };
 
 export type OperationOptionType = "string" | "number" | "boolean" | "select";
 

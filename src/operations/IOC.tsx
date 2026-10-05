@@ -12,14 +12,14 @@ import { Operation } from "@/lib/types";
 export const DefangIOCs: Operation = {
   name: "Defang IOCs",
   description: "Make URLs, domains, IPs and emails non-clickable (hxxp, [.])",
-  category: "convert",
+  category: "ioc",
   run: (input) => ({ result: defang(input) }),
 };
 
 export const RefangIOCs: Operation = {
   name: "Refang IOCs",
   description: "Restore defanged IOCs (hxxp, [.], (dot), [@], [:])",
-  category: "convert",
+  category: "ioc",
   run: (input) => ({ result: refang(input) }),
 };
 
@@ -40,7 +40,7 @@ export const ExtractIOCs: Operation = {
   name: "Extract IOCs",
   description:
     "Extract URLs, domains, IPs, hashes, emails and CVEs (defanged too)",
-  category: "search",
+  category: "extract",
   options: [
     {
       name: "Type",
@@ -85,7 +85,7 @@ export const FilterPrivateIPs: Operation = {
   name: "Filter Private IPs",
   description:
     "Remove (or keep only) lines whose IPv4 is private, loopback or reserved",
-  category: "network",
+  category: "filter",
   options: [
     {
       name: "Mode",

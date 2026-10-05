@@ -27,7 +27,7 @@ import {
   RecipeBuilder,
   StepCard,
 } from "./components/RecipeBuilder";
-import { OperationList } from "./components/OperationList";
+import { OperationPalette } from "./components/OperationPalette";
 import {
   CakeSliceIcon,
   CheckIcon,
@@ -311,7 +311,6 @@ function App() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [infos, setInfos] = useState<Record<string, string>>({});
   const [state, setState] = useState("idle");
-  const [search, setSearch] = useState("");
 
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
@@ -471,18 +470,11 @@ function App() {
         <div className="min-h-screen p-4">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
             {/* Operations Panel */}
-            <div className="flex flex-col gap-3 mt-2">
+            <div className="flex min-h-0 flex-col gap-3 mt-2">
               <div className="flex-row flex w-full">
                 <SettingsDialog />
               </div>
-              <Input
-                placeholder="Search operations..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <div className="h-[calc(100vh-9rem)] overflow-y-scroll overflow-x-hidden pe-2">
-                <OperationList operations={operations} search={search} />
-              </div>
+              <OperationPalette operations={operations} />
             </div>
 
             <div className="mt-2">

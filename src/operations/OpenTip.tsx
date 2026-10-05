@@ -5,7 +5,7 @@ import { Operation } from "@/lib/types";
 export const OpenTIPLookup: Operation = {
   name: "OpenTIP Lookup",
   description: "Check IPs against Kaspersky OpenTIP",
-  category: "malware",
+  category: "intel",
   run: async (input) => {
     const keys = SettingsManager.getKeys();
     if (!keys.opentip) {

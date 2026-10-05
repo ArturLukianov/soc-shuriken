@@ -38,16 +38,29 @@ import {
 } from "./Decode";
 import { BuildKATAQuery } from "./KATA";
 
+// Order within each group in the operations panel
 export const operations: Operation[] = [
+  // Threat intel
   AbuseIPDBCheckIPs,
+  ThreatbookCheckIP,
   OpenTIPLookup,
+  IPInfo,
+  LeakCheckEmails,
+  // Extract
   ExtractIOCs,
   ExtractIPs,
   ExtractEmails,
+  ExtractRegex,
+  // Filter
+  Grep,
+  GrepNot,
+  GrepRegex,
+  FilterPrivateIPs,
+  // IOC & hunting
   DefangIOCs,
   RefangIOCs,
-  FilterPrivateIPs,
   BuildKATAQuery,
+  // Decode & encode
   Base64Decode,
   Base64Encode,
   PowerShellDecode,
@@ -56,28 +69,20 @@ export const operations: Operation[] = [
   URLEncode,
   HexDecode,
   HexEncode,
-  // SHA256Hash,
-  // SHA512Hash,
-  // MD5Hash,
   XORWithKey,
-  CountOccurrences,
-  UniqueLines,
-  CutField,
-  SquashSpaces,
-  Sort,
-  Grep,
-  GrepNot,
-  GrepRegex,
-  ExtractRegex,
+  // Logs & parsing
   ExtractFieldFromHTTPLogs,
   MatchHTTPField,
   RemoveStaticHTTPContentFromLogs,
   UserAgentParser,
   JSONExtract,
-  LeakCheckEmails,
+  // Text & lines
+  CountOccurrences,
+  UniqueLines,
   DuplicateLines,
-  IPInfo,
-  ThreatbookCheckIP,
+  Sort,
+  CutField,
+  SquashSpaces,
 ];
 
 const operationsByName = new Map(operations.map((op) => [op.name, op]));

@@ -5,7 +5,7 @@ import { Operation } from "@/lib/types";
 export const AbuseIPDBCheckIPs: Operation = {
   name: "AbuseIPDB Check IPs",
   description: "Check IPs against AbuseIPDB",
-  category: "malware",
+  category: "intel",
   run: async (input) => {
     const keys = SettingsManager.getKeys();
     if (!keys.abuseIPDB) {

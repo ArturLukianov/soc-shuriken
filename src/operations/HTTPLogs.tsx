@@ -8,7 +8,7 @@ const COMBINED_LOG_REGEX =
 export const ExtractFieldFromHTTPLogs: Operation = {
   name: "Extract Field From HTTP Logs",
   description: "Extract a field from HTTP logs",
-  category: "search",
+  category: "logs",
   options: [
     {
       name: "Field",
@@ -59,7 +59,7 @@ export const ExtractFieldFromHTTPLogs: Operation = {
 export const MatchHTTPField: Operation = {
   name: "Match HTTP Field",
   description: "Match a field from HTTP logs",
-  category: "search",
+  category: "logs",
   options: [
     {
       name: "Field",
@@ -115,7 +115,7 @@ export const MatchHTTPField: Operation = {
 export const RemoveStaticHTTPContentFromLogs: Operation = {
   name: "Remove Static HTTP Content from logs",
   description: "Remove static content from HTTP logs",
-  category: "search",
+  category: "logs",
   run: (input) => {
     return {
       result: input

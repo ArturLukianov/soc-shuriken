@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { OperationOption, RecipeOperation } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { categoryIcons } from "./OperationItem";
+import { CategoryIcon } from "./CategoryIcon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -232,7 +232,7 @@ export function StepCard({
         <span className="w-4 shrink-0 text-right text-xs tabular-nums text-gray-500">
           {index !== undefined && index + 1}
         </span>
-        {categoryIcons[operation.category]}
+        <CategoryIcon category={operation.category} />
         <span
           className={cn(
             "flex-1 truncate text-sm",

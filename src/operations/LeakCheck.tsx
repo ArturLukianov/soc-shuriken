@@ -4,7 +4,7 @@ import { Operation } from "@/lib/types";
 export const LeakCheckEmails: Operation = {
   name: "LeakCheck Emails",
   description: "Check Emails against LeakCheck",
-  category: "malware",
+  category: "intel",
   run: (input) =>
     lookupEach(input, {
       provider: "leakcheck",

@@ -25,7 +25,7 @@ export const PowerShellDecode: Operation = {
   name: "PowerShell Decode",
   description:
     "Decode -EncodedCommand (Base64 UTF-16LE) from a command line or bare Base64",
-  category: "convert",
+  category: "decode",
   run: (input) => {
     const payloads = [...input.matchAll(ENCODED_COMMAND_RE)]
       .filter(([, flag]) => isEncodedCommandFlag(flag))
@@ -50,7 +50,7 @@ export const PowerShellDecode: Operation = {
 export const URLDecode: Operation = {
   name: "URL Decode",
   description: "Decode %XX escapes (and + as space)",
-  category: "convert",
+  category: "decode",
   options: [
     {
       name: "Plus as space",
@@ -82,7 +82,7 @@ export const URLDecode: Operation = {
 export const URLEncode: Operation = {
   name: "URL Encode",
   description: "Percent-encode text",
-  category: "convert",
+  category: "decode",
   run: (input) => ({
     result: input
       .split("\n")
@@ -94,7 +94,7 @@ export const URLEncode: Operation = {
 export const HexDecode: Operation = {
   name: "Hex Decode",
   description: "Decode hex (48656c6c6f, 0x48 0x65, \\x48\\x65) to UTF-8 text",
-  category: "convert",
+  category: "decode",
   run: (input) => {
     try {
       return { result: utf8.decode(hexToBytes(input)) };
@@ -107,7 +107,7 @@ export const HexDecode: Operation = {
 export const HexEncode: Operation = {
   name: "Hex Encode",
   description: "Encode UTF-8 text as hex",
-  category: "convert",
+  category: "decode",
   options: [
     {
       name: "Separator",
@@ -133,7 +133,7 @@ export const Decompress: Operation = {
   name: "Decompress",
   description:
     "Decompress gzip / zlib / raw deflate data given as Base64 or hex",
-  category: "convert",
+  category: "decode",
   options: [
     {
       name: "Input format",

@@ -3,7 +3,7 @@ import { Operation } from "@/lib/types";
 export const JSONExtract: Operation = {
   name: "JSON Extract",
   description: "Extract a JSON field",
-  category: "convert",
+  category: "logs",
   options: [
     {
       name: "Field",

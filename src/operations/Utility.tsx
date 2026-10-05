@@ -3,7 +3,7 @@ import { Operation } from "@/lib/types";
 export const UniqueLines: Operation = {
   name: "Unique Lines",
   description: "Remove duplicate lines",
-  category: "utility",
+  category: "text",
   run: (input) => {
     return { result: [...new Set(input.split("\n"))].join("\n") };
   },
@@ -12,7 +12,7 @@ export const UniqueLines: Operation = {
 export const DuplicateLines: Operation = {
   name: "Duplicate Lines",
   description: "Show duplicate lines",
-  category: "utility",
+  category: "text",
   run: (input) => {
     const lines = input.split("\n");
     const seen = new Map();
@@ -28,7 +28,7 @@ export const DuplicateLines: Operation = {
 export const SquashSpaces: Operation = {
   name: "Squash Spaces",
   description: "Remove extra spaces",
-  category: "utility",
+  category: "text",
   run: (input) => {
     return { result: input.replace(/[ \t]+/g, " ") };
   },
@@ -37,7 +37,7 @@ export const SquashSpaces: Operation = {
 export const CutField: Operation = {
   name: "Cut Field",
   description: "Cut a field from a line",
-  category: "utility",
+  category: "text",
   options: [
     {
       type: "string",
@@ -66,7 +66,7 @@ export const CutField: Operation = {
 export const Grep: Operation = {
   name: "Grep",
   description: "Grep for a pattern",
-  category: "search",
+  category: "filter",
   options: [
     {
       name: "Pattern",
@@ -88,7 +88,7 @@ export const Grep: Operation = {
 export const GrepRegex: Operation = {
   name: "Grep Regex",
   description: "Grep for a regex pattern",
-  category: "search",
+  category: "filter",
   options: [
     {
       type: "string",
@@ -110,7 +110,7 @@ export const GrepRegex: Operation = {
 export const GrepNot: Operation = {
   name: "Grep Not",
   description: "Grep for a negative pattern",
-  category: "search",
+  category: "filter",
   options: [
     {
       type: "string",
@@ -132,7 +132,7 @@ export const GrepNot: Operation = {
 export const Sort: Operation = {
   name: "Sort",
   description: "Sort lines",
-  category: "utility",
+  category: "text",
   run: (input) => {
     return { result: input.split("\n").sort().join("\n") };
   },
@@ -141,7 +141,7 @@ export const Sort: Operation = {
 export const ExtractRegex: Operation = {
   name: "Extract Regex",
   description: "Extract a regex pattern",
-  category: "search",
+  category: "extract",
   options: [
     {
       type: "string",
@@ -165,7 +165,7 @@ export const CountOccurrences: Operation = {
   name: "Count Occurrences",
   description:
     "Count identical lines, most frequent first (sort | uniq -c | sort -nr)",
-  category: "utility",
+  category: "text",
   run: (input) => {
     const counts = new Map<string, number>();
     for (const line of input.split("\n")) {

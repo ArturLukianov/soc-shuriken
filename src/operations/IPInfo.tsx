@@ -5,7 +5,7 @@ import { Operation } from "@/lib/types";
 export const IPInfo: Operation = {
   name: "IP Location & ASN Lookup",
   description: "Get geolocation and ASN information using IPinfo.io",
-  category: "network",
+  category: "intel",
   run: async (input) => {
     const keys = SettingsManager.getKeys();
     if (!keys.ipinfo) {

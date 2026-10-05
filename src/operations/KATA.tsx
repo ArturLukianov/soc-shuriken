@@ -53,7 +53,7 @@ export const BuildKATAQuery: Operation = {
   name: "Build KATA Query",
   description:
     "Build a Kaspersky Anti Targeted Attack threat hunting query from a list",
-  category: "search",
+  category: "ioc",
   options: [
     {
       name: "Field",

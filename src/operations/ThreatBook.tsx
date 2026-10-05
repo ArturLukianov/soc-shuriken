@@ -5,7 +5,7 @@ import { Operation } from "@/lib/types";
 export const ThreatbookCheckIP: Operation = {
   name: "Threatbook Check IP",
   description: "Check IP reputation using Threatbook API",
-  category: "malware",
+  category: "intel",
   run: async (input) => {
     const keys = SettingsManager.getKeys();
     if (!keys.threatbook) {
