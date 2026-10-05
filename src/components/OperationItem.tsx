@@ -13,6 +13,7 @@ import {
   SearchIcon,
 } from "lucide-react";
 import { Operation } from "@/lib/types";
+import type { HTMLAttributes, Ref } from "react";
 
 export const categoryIcons = {
   crypto: <LockIcon className="rounded-lg p-1 bg-orange-900 text-orange-300" />,
@@ -29,30 +30,47 @@ export const categoryIcons = {
 };
 
 export function OperationItem({ operation }: { operation: Operation }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id: operation.name,
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `palette:${operation.name}`,
     data: { operation, type: "operation" },
   });
 
+  // The DragOverlay renders the moving copy, so the original stays in place
+  return (
+    <OperationCard
+      operation={operation}
+      ref={setNodeRef}
+      className={isDragging ? "opacity-50" : undefined}
+      handleProps={{ ...listeners, ...attributes }}
+    />
+  );
+}
+
+export function OperationCard({
+  operation,
+  ref,
+  className,
+  handleProps,
+}: {
+  operation: Operation;
+  ref?: Ref<HTMLDivElement>;
+  className?: string;
+  handleProps?: HTMLAttributes<HTMLButtonElement>;
+}) {
   return (
     <div
-      ref={setNodeRef}
-      style={{
-        transform: transform
-          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-          : undefined,
-      }}
+      ref={ref}
       className={cn(
         "flex items-center gap-3 bg-black p-3 rounded-lg",
         "border transition-colors",
+        className,
       )}
     >
       <Button
         variant="ghost"
         size="icon"
         className="h-6 w-6 cursor-grab active:cursor-grabbing"
-        {...listeners}
-        {...attributes}
+        {...handleProps}
       >
         <GripVertical className="h-4 w-4 text-gray-400" />
       </Button>

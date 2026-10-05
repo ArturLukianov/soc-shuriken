@@ -1,17 +1,27 @@
 import { useState } from "react";
 import {
   closestCenter,
+  CollisionDetection,
   DndContext,
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
+import {
+  arrayMove,
+  sortableKeyboardCoordinates,
+} from "@dnd-kit/sortable";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import { ThemeProvider } from "./components/theme-provider";
 import { Editor } from "@monaco-editor/react";
 import { Operation, RecipeOperation } from "./lib/types";
-import { RecipeBuilder } from "./components/RecipeBuilder";
+import { RECIPE_AREA_ID, RecipeBuilder } from "./components/RecipeBuilder";
 import { OperationList } from "./components/OperationList";
 import { CakeSliceIcon, CogIcon, KeyIcon } from "lucide-react";
 import {
@@ -51,7 +61,7 @@ import {
   MatchHTTPField,
   RemoveStaticHTTPContentFromLogs,
 } from "./operations/HTTPLogs";
-import { OperationItem } from "./components/OperationItem";
+import { OperationCard } from "./components/OperationItem";
 import { UserAgentParser } from "./operations/UserAgent";
 import { ApiKeys, SettingsManager } from "./lib/settings";
 import { JSONExtract } from "./operations/JSON";
@@ -89,6 +99,20 @@ const operations: Operation[] = [
   IPInfo,
   ThreatbookCheckIP,
 ];
+
+// Palette drags only count when the pointer is actually inside the recipe;
+// reordering steps snaps to the nearest step.
+const collisionDetection: CollisionDetection = (args) => {
+  if (args.active.data.current?.type === "step") {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (container) => container.data.current?.type === "step",
+      ),
+    });
+  }
+  return pointerWithin(args);
+};
 
 function SettingsDialog() {
   const [keys, setKeys] = useState<ApiKeys>(SettingsManager.getKeys());
@@ -256,28 +280,58 @@ function App() {
     null,
   );
 
+  const sensors = useSensors(
+    // Small distance so clicks on step buttons/inputs don't start a drag
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   const handleDragStart = (event: DragStartEvent) => {
-    setActiveOperation(event.active.data.current?.operation ?? null);
+    if (event.active.data.current?.type === "operation") {
+      setActiveOperation(event.active.data.current.operation);
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over, delta } = event;
-    const operation: Operation | undefined = active.data.current?.operation;
+    const { active, over } = event;
+    setActiveOperation(null);
+    if (!over) return;
 
-    // Only add if dropped into the recipe area
-    if (over?.id === "recipe-area" && operation && delta.x > 350) {
-      const state: Record<string, string> = {};
-      for (const option of operation.options ?? []) {
-        state[option.name] = String(option.default);
+    if (active.data.current?.type === "step") {
+      if (active.id === over.id) return;
+      const from = recipe.findIndex((op) => op.id === active.id);
+      const to = recipe.findIndex((op) => op.id === over.id);
+      if (from !== -1 && to !== -1) {
+        setRecipe(arrayMove(recipe, from, to));
       }
-
-      const newOperation: RecipeOperation = {
-        id: uuidv4(),
-        state: state,
-        ...operation,
-      };
-      setRecipe([...recipe, newOperation]);
+      return;
     }
+
+    const operation: Operation | undefined = active.data.current?.operation;
+    if (!operation) return;
+
+    // Dropped onto an existing step: insert before it; otherwise append
+    const overIndex = recipe.findIndex((op) => op.id === over.id);
+    if (over.id !== RECIPE_AREA_ID && overIndex === -1) return;
+
+    const state: Record<string, string> = {};
+    for (const option of operation.options ?? []) {
+      state[option.name] = String(option.default);
+    }
+
+    const newOperation: RecipeOperation = {
+      id: uuidv4(),
+      state: state,
+      ...operation,
+    };
+    const insertAt = overIndex === -1 ? recipe.length : overIndex;
+    setRecipe([
+      ...recipe.slice(0, insertAt),
+      newOperation,
+      ...recipe.slice(insertAt),
+    ]);
   };
 
   const runRecipe = async () => {
@@ -309,8 +363,10 @@ function App() {
 
   return (
     <DndContext
+      sensors={sensors}
       onDragEnd={handleDragEnd}
-      collisionDetection={closestCenter}
+      onDragCancel={() => setActiveOperation(null)}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
     >
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
@@ -393,7 +449,7 @@ function App() {
         </div>
 
         <DragOverlay zIndex={999}>
-          {activeOperation && <OperationItem operation={activeOperation} />}
+          {activeOperation && <OperationCard operation={activeOperation} />}
         </DragOverlay>
       </ThemeProvider>
     </DndContext>

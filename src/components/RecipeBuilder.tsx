@@ -1,8 +1,15 @@
 // components/RecipeBuilder.tsx
 import { Button } from "./ui/button";
-import { MessageSquareWarningIcon, X } from "lucide-react";
+import { GripVertical, MessageSquareWarningIcon, X } from "lucide-react";
 import { OperationOption, RecipeOperation } from "@/lib/types";
 import { useDroppable } from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@/lib/utils";
 import { categoryIcons } from "./OperationItem";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -14,6 +21,8 @@ import {
   SelectValue,
 } from "./ui/select";
 
+export const RECIPE_AREA_ID = "recipe-area";
+
 export function RecipeBuilder({
   recipe,
   onUpdate,
@@ -23,23 +32,31 @@ export function RecipeBuilder({
   onUpdate: (ops: RecipeOperation[]) => void;
   errors: Record<string, string>,
 }) {
-  const { setNodeRef } = useDroppable({
-    id: "recipe-area",
+  const { setNodeRef, isOver } = useDroppable({
+    id: RECIPE_AREA_ID,
   });
 
   return (
     <div
-      className="space-y-2 min-h-[200px] h-[calc(100%-3rem)] border-2 border-dashed rounded-lg p-2"
+      className={cn(
+        "space-y-2 min-h-[200px] h-[calc(100%-3rem)] border-2 border-dashed rounded-lg p-2 overflow-y-auto transition-colors",
+        isOver && "border-primary",
+      )}
       ref={setNodeRef}
     >
-      {recipe.map((op, index) => (
-        <SortableStep
-          key={op.id}
-          operation={op}
-          error={errors[op.id]}
-          onRemove={() => onUpdate(recipe.filter((_, i) => i !== index))}
-        />
-      ))}
+      <SortableContext
+        items={recipe.map((op) => op.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        {recipe.map((op, index) => (
+          <SortableStep
+            key={op.id}
+            operation={op}
+            error={errors[op.id]}
+            onRemove={() => onUpdate(recipe.filter((_, i) => i !== index))}
+          />
+        ))}
+      </SortableContext>
     </div>
   );
 }
@@ -53,6 +70,16 @@ function SortableStep({
   onRemove: () => void;
   error?: string;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: operation.id, data: { type: "step" } });
+
   function updateState(event: string, option: OperationOption) {
     if (operation.options === undefined) {
       return;
@@ -63,12 +90,25 @@ function SortableStep({
 
   return (
     <div
-      className={
-        "flex flex-col items-center gap-2 p-2 rounded bg-black w-full " +
-        (error === undefined ? "border" : "highlight-border")
-      }
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        "flex flex-col items-center gap-2 p-2 rounded bg-black w-full",
+        error === undefined ? "border" : "highlight-border",
+        isDragging && "relative z-10 opacity-80",
+      )}
     >
       <div className="flex items-center gap-2 w-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 cursor-grab active:cursor-grabbing"
+          ref={setActivatorNodeRef}
+          {...listeners}
+          {...attributes}
+        >
+          <GripVertical className="h-4 w-4 text-gray-400" />
+        </Button>
         {categoryIcons[operation.category]}
         <span className="flex-1 text-sm">{operation.name}</span>
         <Button
