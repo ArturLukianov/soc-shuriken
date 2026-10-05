@@ -9,7 +9,7 @@ export const Base64Decode: Operation = {
       return {
         result: atob(input)
       };
-    } catch (e) {
+    } catch {
       return {
         result: "",
         error: "Invalid Base64 input"
@@ -27,7 +27,7 @@ export const Base64Encode: Operation = {
       return {
         result: btoa(input),
       };
-    } catch (e) {
+    } catch {
       return { result: "", error: "Invalid Base64 input" };
     }
   },

@@ -16,7 +16,7 @@ export const ThreatbookCheckIP: Operation = {
       };
     }
 
-    let results: string[] = [];
+    const results: string[] = [];
     for (const ip of ips) {
       if (!ip.trim()) continue;
 

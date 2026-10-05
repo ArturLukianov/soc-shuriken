@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { closestCenter, DndContext, DragOverlay } from "@dnd-kit/core";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "./components/ui/card";
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+} from "@dnd-kit/core";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import { ThemeProvider } from "./components/theme-provider";
@@ -13,14 +13,7 @@ import { Editor } from "@monaco-editor/react";
 import { Operation, RecipeOperation } from "./lib/types";
 import { RecipeBuilder } from "./components/RecipeBuilder";
 import { OperationList } from "./components/OperationList";
-import {
-  CakeIcon,
-  CakeSlice,
-  CakeSliceIcon,
-  CogIcon,
-  KeyIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { CakeSliceIcon, CogIcon, KeyIcon } from "lucide-react";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -41,11 +34,8 @@ import {
 } from "./operations/Utility";
 import { AbuseIPDBCheckIPs } from "./operations/AbuseIPDB";
 import { OpenTIPLookup } from "./operations/OpenTip";
-import { randomUUID } from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import { XORWithKey } from "./operations/XOR";
-import { Toggle } from "./components/ui/toggle";
-import { Switch } from "./components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -61,7 +51,6 @@ import {
   MatchHTTPField,
   RemoveStaticHTTPContentFromLogs,
 } from "./operations/HTTPLogs";
-import { ScrollArea } from "./components/ui/scroll-area";
 import { OperationItem } from "./components/OperationItem";
 import { UserAgentParser } from "./operations/UserAgent";
 import { ApiKeys, SettingsManager } from "./lib/settings";
@@ -267,31 +256,25 @@ function App() {
     null,
   );
 
-  const handleDragStart = (event: any) => {
-    setActiveOperation(event.active.data.current.operation);
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveOperation(event.active.data.current?.operation ?? null);
   };
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over, delta } = event;
-    console.log(delta.x);
+    const operation: Operation | undefined = active.data.current?.operation;
 
     // Only add if dropped into the recipe area
-    if (
-      over?.id === "recipe-area" &&
-      active.data.current?.operation &&
-      delta.x > 350
-    ) {
-      let state: Record<string, string> = {};
-      if (active.data.current?.operation.options) {
-        for (const option of active.data.current?.operation.options) {
-          state[option.name] = option.default;
-        }
+    if (over?.id === "recipe-area" && operation && delta.x > 350) {
+      const state: Record<string, string> = {};
+      for (const option of operation.options ?? []) {
+        state[option.name] = String(option.default);
       }
 
       const newOperation: RecipeOperation = {
         id: uuidv4(),
         state: state,
-        ...active.data.current.operation,
+        ...operation,
       };
       setRecipe([...recipe, newOperation]);
     }
@@ -301,21 +284,27 @@ function App() {
     let data = input;
     setState("wip");
 
-    let errors: Record<string, string> = {};
+    const errors: Record<string, string> = {};
 
-    for (const operation of recipe) {
-      const { result, error } = await operation.run(data, operation.state);
-      if (error) {
-        errors[operation.id] = error;
-        setErrors(errors);
-        break;
+    try {
+      for (const operation of recipe) {
+        try {
+          const { result, error } = await operation.run(data, operation.state);
+          if (error) {
+            errors[operation.id] = error;
+            break;
+          }
+          data = result;
+        } catch (e) {
+          errors[operation.id] = e instanceof Error ? e.message : String(e);
+          break;
+        }
       }
-      data = result;
+      setOutput(data);
+    } finally {
+      setErrors(errors);
+      setState("idle");
     }
-    setErrors(errors);
-
-    setOutput(data);
-    setState("idle");
   };
 
   return (

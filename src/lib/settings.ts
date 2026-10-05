@@ -25,7 +25,7 @@ export class SettingsManager {
     try {
       const encoded = localStorage.getItem(this.STORAGE_KEY) || "";
       return JSON.parse(atob(encoded)) || {};
-    } catch (error) {
+    } catch {
       return {};
     }
   }

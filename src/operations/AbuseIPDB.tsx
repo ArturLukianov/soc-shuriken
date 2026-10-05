@@ -6,7 +6,7 @@ export const AbuseIPDBCheckIPs: Operation = {
   description: "Check IPs against AbuseIPDB",
   category: "malware",
   run: async (input) => {
-    const ips = input.split("\n");
+    const ips = input.split("\n").map((ip) => ip.trim()).filter(Boolean);
     const keys = SettingsManager.getKeys();
 
     if (!keys.abuseIPDB) {
@@ -15,12 +15,12 @@ export const AbuseIPDBCheckIPs: Operation = {
         error: "No AbuseIPDB API key found",
       }
     }
-    // fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}&maxAgeInDays=90&key=${ABUSEIPDB_TOKEN}`)
+    // fetch(`https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90&key=${ABUSEIPDB_TOKEN}`)
 
-    let results: string[] = [];
+    const results: string[] = [];
     for (const ip of ips) {
       const apiData = await fetch(
-        `https://api.abuseipdb.com/api/v2/check?ipAddress=${ip}&maxAgeInDays=90&key=${keys.abuseIPDB}`
+        `https://api.abuseipdb.com/api/v2/check?ipAddress=${encodeURIComponent(ip)}&maxAgeInDays=90&key=${keys.abuseIPDB}`
       ).then((data) => data.json());
       if (apiData.errors && apiData.errors.length > 0) {
         results.push(`❌ (Error: ) ${ip}`);

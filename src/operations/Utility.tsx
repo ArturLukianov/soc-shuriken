@@ -30,7 +30,7 @@ export const SquashSpaces: Operation = {
   description: "Remove extra spaces",
   category: "utility",
   run: (input) => {
-    return { result: input.replace(/\s+/g, " ") };
+    return { result: input.replace(/[ \t]+/g, " ") };
   },
 };
 

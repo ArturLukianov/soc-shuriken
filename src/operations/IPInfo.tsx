@@ -23,7 +23,7 @@ export const IPInfo: Operation = {
 
       try {
         const response = await fetch(
-          `https://ipinfo.io/${trimmedIp}/json?token=${keys.ipinfo}`,
+          `https://ipinfo.io/${encodeURIComponent(trimmedIp)}/json?token=${keys.ipinfo}`,
         );
         const data = await response.json();
 
@@ -35,17 +35,15 @@ export const IPInfo: Operation = {
         const country = data.country || "Unknown";
         const city = data.city || "Unknown";
         const region = data.region || "Unknown";
+        // org is already formatted as "AS15169 Google LLC"
         const org = data.org || "ASN Unknown";
 
-        // Parse ASN number and organization name
-        const [asnNumber, ...asnNameParts] = org.split(" ");
-        const asnName = asnNameParts.join(" ") || "Unknown";
-
         results.push(
-          `📍 (Country: ${country}, Region: ${region}, City: ${city}) | AS${asnNumber} ${asnName} | ${trimmedIp}`,
+          `📍 (Country: ${country}, Region: ${region}, City: ${city}) | ${org} | ${trimmedIp}`,
         );
       } catch (error) {
-        results.push(`❌ (Error: ${error.message}) ${trimmedIp}`);
+        const message = error instanceof Error ? error.message : String(error);
+        results.push(`❌ (Error: ${message}) ${trimmedIp}`);
       }
     }
 

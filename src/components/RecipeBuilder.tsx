@@ -1,21 +1,11 @@
 // components/RecipeBuilder.tsx
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Button } from "./ui/button";
-import {
-  GripVertical,
-  ItalicIcon,
-  MessageSquareWarningIcon,
-  PlugIcon,
-  StopCircleIcon,
-  X,
-} from "lucide-react";
-import { Operation, OperationOption, RecipeOperation } from "@/lib/types";
+import { MessageSquareWarningIcon, X } from "lucide-react";
+import { OperationOption, RecipeOperation } from "@/lib/types";
 import { useDroppable } from "@dnd-kit/core";
 import { categoryIcons } from "./OperationItem";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { useState } from "react";
 import {
   Select,
   SelectContent,

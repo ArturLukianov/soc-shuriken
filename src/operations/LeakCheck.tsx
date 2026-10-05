@@ -5,12 +5,12 @@ export const LeakCheckEmails: Operation = {
   description: "Check Emails against LeakCheck",
   category: "malware",
   run: async (input) => {
-    const emails = input.split("\n");
+    const emails = input.split("\n").map((email) => email.trim()).filter(Boolean);
 
-    let results: string[] = [];
+    const results: string[] = [];
     for (const email of emails) {
       const apiData = await fetch(
-        `https://leakcheck.io/api/public?check=${email}`
+        `https://leakcheck.io/api/public?check=${encodeURIComponent(email)}`
       ).then((data) => data.json());
       const leaksNum = apiData.found;
 

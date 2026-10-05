@@ -19,7 +19,7 @@ export const OpenTIPLookup: Operation = {
     const results = await Promise.all(
       ips.map(async (ip) => {
         try {
-          const response = await fetch(`https://opentip.kaspersky.com/api/v1/search/ip?request=${ip}`, {
+          const response = await fetch(`https://opentip.kaspersky.com/api/v1/search/ip?request=${encodeURIComponent(ip)}`, {
             headers: { Authorization: `Bearer ${keys.opentip}` },
           });
 
@@ -37,7 +37,7 @@ export const OpenTIPLookup: Operation = {
           const owner = data.as_info?.owner || "Unknown Owner"; // Владелец IP
 
           return `${ip}: ${zone}, ${country}, ${owner}`;
-        } catch (err) {
+        } catch {
           return `${ip}: ❌ (Fetch Error)`;
         }
       })

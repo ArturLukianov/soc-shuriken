@@ -1,6 +1,6 @@
 import Editor from "@monaco-editor/react";
 
-export function CodeEditor({ value, onChange }: { 
+export function CodeEditor({ value, onChange }: {
   value: string;
   onChange?: (value: string) => void;
 }) {
@@ -9,7 +9,7 @@ export function CodeEditor({ value, onChange }: {
       height="100%"
       theme="vs-dark"
       value={value}
-    //   onChange={onChange}
+      onChange={(value) => onChange?.(value ?? "")}
       options={{
         minimap: { enabled: false },
         fontSize: 14,
