@@ -1,13 +1,7 @@
-// lib/operations.ts
+// lib/types.ts
+import type { OperationCategory } from "./categories";
 
-export type OperationCategory =
-  | "search"
-  | "crypto"
-  | "malware"
-  | "web"
-  | "network"
-  | "utility"
-  | "convert";
+export type { OperationCategory };
 
 export type OperationOptionType = "string" | "number" | "boolean" | "select";
 
@@ -21,6 +15,8 @@ export type OperationOption = {
 export type OperationResult = {
   result: string;
   error?: string;
+  // Short status shown under the step, e.g. "3 cached · 2 fetched"
+  info?: string;
 };
 
 export type Operation = {
@@ -37,5 +33,6 @@ export type Operation = {
 export type RecipeOperation = Operation & {
   id: string;
   error?: string;
+  disabled?: boolean;
   state: Record<string, string>;
 };

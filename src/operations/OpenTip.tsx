@@ -1,101 +1,158 @@
+import { lookupEach, LookupOutcome } from "@/lib/lookup";
 import { SettingsManager } from "@/lib/settings";
 import { Operation } from "@/lib/types";
 
-
-
-
-type CategoriesWithZone = {
-  Name: string;
-  Zone: string;
-  [key: string]: any;
+// Kaspersky OpenTIP API: GET /api/v1/search/{hash|ip|domain|url}?request=...
+// with the token in the x-api-key header. Status codes per Kaspersky's
+// reference client: 404 means there is no data for the object.
+const ERROR_REASONS: Record<number, string> = {
+  400: "Bad request",
+  401: "Authentication failed: check the API token",
+  403: "Quota or request limit exceeded",
 };
 
-type NetInfo = {
-  RangeStart?: string;
-  RangeEnd?: string;
-  Created?: string;
-  Description?: string;
-  [key: string]: any;
+// Untyped API JSON; fields are read defensively
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApiData = Record<string, any>;
+
+type OpenTipResponse =
+  { found: true; data: ApiData } | { found: false } | { error: string };
+
+async function opentipSearch(
+  type: "hash" | "ip",
+  value: string,
+  apiKey: string,
+): Promise<OpenTipResponse> {
+  const response = await fetch(
+    `https://opentip.kaspersky.com/api/v1/search/${type}?request=${encodeURIComponent(value)}`,
+    { headers: { "x-api-key": apiKey } },
+  );
+  if (response.status === 404) return { found: false };
+  if (!response.ok) {
+    return {
+      error: ERROR_REASONS[response.status] ?? `HTTP ${response.status}`,
+    };
+  }
+  return { found: true, data: await response.json() };
+}
+
+const ZONE_MARKS: Record<string, string> = {
+  Red: "❌",
+  Orange: "⚠️",
+  Yellow: "⚠️",
+  Green: "✅",
+  Grey: "❔",
 };
 
-type ApiResponse = {
-  Zone?: string;
-  IpGeneralInfo?: {
-    Ip?: string;
-    CategoriesWithZone?: CategoriesWithZone[];
-    [key: string]: any;
+const mark = (zone: string | undefined) => ZONE_MARKS[zone ?? ""] ?? "❔";
+
+function outcome(
+  response: OpenTipResponse,
+  value: string,
+  // Extra details to show; empty values are dropped
+  describe: (data: ApiData) => (string | undefined)[],
+): LookupOutcome {
+  if ("error" in response) {
+    return { result: `❌ (Error: ${response.error}) ${value}`, cache: false };
+  }
+  if (!response.found) {
+    return { result: `❔ (Not found) ${value}`, cache: true };
+  }
+  const zone: string | undefined = response.data.Zone;
+  const details = [zone ?? "Unknown zone", ...describe(response.data)].filter(
+    Boolean,
+  );
+  return {
+    result: `${mark(zone)} (${details.join(", ")}) ${value}`,
+    cache: true,
   };
-  IpWhoIs?: {
-    Net?: NetInfo;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+}
 
-
-const zoneEmojis: Record<string, string> = {
-  Grey: '⬜️',
-  Green: '🟩',
-  Yellow: '🟨',
-  Orange: '🟧',
-  Red: '🟥'
-};
-
-function formatSingleResponse(res: ApiResponse): string {
-  const emoji = zoneEmojis[res.Zone ?? ""] ?? "";
-  const ip = res.IpGeneralInfo?.Ip ?? "";
-
-  const categories = res.IpGeneralInfo?.CategoriesWithZone?.map(
-    c => `${c.Zone} (${c.Name})`
-  ).join('; ') ?? "";
-
-  const net = res.IpWhoIs?.Net;
-  const description = net?.Description ?? "";
-  const created = net?.Created ?? "";
-  const rangeStart = net?.RangeStart ?? "";
-  const rangeEnd = net?.RangeEnd ?? "";
-  const range = rangeStart && rangeEnd ? `${rangeStart} - ${rangeEnd}` : "";
-
-  return `${ip}, ${emoji}, ${categories}, ${description}, ${created}, ${range}`;
+function requireKey() {
+  return SettingsManager.getKeys().opentip;
 }
 
 export const OpenTIPLookup: Operation = {
   name: "OpenTIP Lookup",
   description: "Check IPs against Kaspersky OpenTIP",
-  category: "malware",
+  category: "intel",
   run: async (input) => {
-    const ips = input.split("\n").filter(ip => ip.trim() !== "");
-    const keys = SettingsManager.getKeys();
+    const apiKey = requireKey();
+    if (!apiKey) return { result: "", error: "No OpenTIP API key found" };
 
-    if (!keys.opentip) {
-      return {
-        result: "",
-        error: "No OpenTIP API key found",
-      };
-    }
+    return lookupEach(input, {
+      // Results cached before the response parsing fix were all "No data"
+      provider: "opentip-ip",
+      concurrency: 5,
+      lookup: async (ip) =>
+        outcome(await opentipSearch("ip", ip, apiKey), ip, (data) => {
+          const info = data.IpGeneralInfo ?? {};
+          const asn = data.IpWhoIs?.Asn?.[0];
+          const net = data.IpWhoIs?.Net;
+          const categories: string[] = (info.CategoriesWithZone ?? [])
+            .map(
+              (category: { Name?: string; Zone?: string }) =>
+                category.Name &&
+                `${category.Name}${category.Zone ? ` [${category.Zone}]` : ""}`,
+            )
+            .filter(Boolean);
+          const range =
+            net?.RangeStart && net?.RangeEnd
+              ? `${net.RangeStart} - ${net.RangeEnd}`
+              : undefined;
+          return [
+            info.Status,
+            info.CountryCode,
+            asn &&
+              `AS${asn.Number}${asn.Description?.length ? ` ${asn.Description.join(" ")}` : ""}`,
+            categories.length > 0 ? categories.join("; ") : undefined,
+            net?.Description && `Net: ${net.Description}`,
+            range && `Range: ${range}`,
+          ];
+        }),
+    });
+  },
+};
 
-    const results = await Promise.all(
-      ips.map(async (ip) => {
-        try {
-          const response = await fetch(`https://opentip.kaspersky.com/api/v1/search/ip?request=${ip}`, {
-            headers: { 'x-api-keys': `${keys.opentip}` },
-          });
+const HASH_RE = /^(?:[a-f0-9]{32}|[a-f0-9]{40}|[a-f0-9]{64})$/;
 
-          if (!response.ok) {
-            return `${ip}: ❌ (API Error)`;
-          }
+export const OpenTIPHashLookup: Operation = {
+  name: "OpenTIP Hash Lookup",
+  description:
+    "Check MD5 / SHA1 / SHA256 file hashes against Kaspersky OpenTIP",
+  category: "intel",
+  run: async (input) => {
+    const apiKey = requireKey();
+    if (!apiKey) return { result: "", error: "No OpenTIP API key found" };
 
-          const data = await response.json();
-          if (data.status == "unknown") {
-            return `${ip}: ❌ (No data)`;
-          }
-          formatSingleResponse(data)
-          } catch (err) {
-          return `${ip}: ❌ (Fetch Error)`;
+    return lookupEach(input.toLowerCase(), {
+      provider: "opentip-hash",
+      concurrency: 5,
+      lookup: async (hash) => {
+        if (!HASH_RE.test(hash)) {
+          return {
+            result: `❌ (Not an MD5/SHA1/SHA256 hash) ${hash}`,
+            cache: false,
+          };
         }
-      })
-    );
-
-    return { result: results.join("\n") };
+        return outcome(
+          await opentipSearch("hash", hash, apiKey),
+          hash,
+          (data) => {
+            const status: string | undefined = data.FileGeneralInfo?.FileStatus;
+            const detections: string[] = (data.DetectionsInfo ?? [])
+              .map(
+                (detection: { DetectionName?: string }) =>
+                  detection.DetectionName,
+              )
+              .filter(Boolean);
+            const shown = detections.slice(0, 3).join(" | ");
+            const more =
+              detections.length > 3 ? ` +${detections.length - 3} more` : "";
+            return [status && (shown ? `${status}: ${shown}${more}` : status)];
+          },
+        );
+      },
+    });
   },
 };

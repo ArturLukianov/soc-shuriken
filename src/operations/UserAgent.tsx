@@ -4,8 +4,8 @@ import { UAParser } from "ua-parser-js";
 export const UserAgentParser: Operation = {
   name: "User-Agent Parser",
   description: "Parse a user agent string",
-  category: "utility",
-  run: (input, options) => {
+  category: "logs",
+  run: (input) => {
     return {
       result: input
         .split("\n")

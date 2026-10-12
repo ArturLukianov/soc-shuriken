@@ -3,7 +3,7 @@ import { Operation } from "@/lib/types";
 export const XORWithKey: Operation = {
   name: "XOR with key",
   description: "XOR with key",
-  category: "crypto",
+  category: "decode",
   options: [
     {
       name: "Key (hex)",

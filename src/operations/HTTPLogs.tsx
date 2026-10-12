@@ -1,9 +1,14 @@
 import { Operation } from "@/lib/types";
 
+// Apache/Nginx combined log format. Groups: 1 IP, 4 Time, 5 Method, 6 Url,
+// 7 Protocol, 8 Status, 9 Size, 10 Referer, 11 User-Agent.
+const COMBINED_LOG_REGEX =
+  /^(\S+) (\S+) (\S+) \[([\w:/]+\s[+-]\d{4})\] "(\S+) (\S+)\s*(\S+)?\s*" (\d{3}) (\S+) "([^"]*)" "([^"]*)"/;
+
 export const ExtractFieldFromHTTPLogs: Operation = {
   name: "Extract Field From HTTP Logs",
   description: "Extract a field from HTTP logs",
-  category: "search",
+  category: "logs",
   options: [
     {
       name: "Field",
@@ -27,10 +32,7 @@ export const ExtractFieldFromHTTPLogs: Operation = {
       result: input
         .split("\n")
         .map((line) => {
-          const parsed =
-            /^(\S+) (\S+) (\S+) \[([\w:/]+\s[+\-]\d{4})\] (\S+) (\S+)\s*(\S+)?\s* (\d{3}) (\S+) "([^"]+)" "([^"]+)"/.exec(
-              line
-            );
+          const parsed = COMBINED_LOG_REGEX.exec(line);
           if (parsed) {
             if (options["Field"] == "IP") {
               return parsed[1];
@@ -57,7 +59,7 @@ export const ExtractFieldFromHTTPLogs: Operation = {
 export const MatchHTTPField: Operation = {
   name: "Match HTTP Field",
   description: "Match a field from HTTP logs",
-  category: "search",
+  category: "logs",
   options: [
     {
       name: "Field",
@@ -86,10 +88,7 @@ export const MatchHTTPField: Operation = {
       result: input
         .split("\n")
         .filter((line) => {
-          const parsed =
-            /^(\S+) (\S+) (\S+) \[([\w:/]+\s[+\-]\d{4})\] (\S+) (\S+)\s*(\S+)?\s* (\d{3}) (\S+) "([^"]+)" "([^"]+)"/.exec(
-              line
-            );
+          const parsed = COMBINED_LOG_REGEX.exec(line);
           if (parsed) {
             if (options["Field"] == "IP") {
               return parsed[1].includes(options["Match"]);
@@ -116,17 +115,14 @@ export const MatchHTTPField: Operation = {
 export const RemoveStaticHTTPContentFromLogs: Operation = {
   name: "Remove Static HTTP Content from logs",
   description: "Remove static content from HTTP logs",
-  category: "search",
-  run: (input, options) => {
+  category: "logs",
+  run: (input) => {
     return {
       result: input
         .split("\n")
         .filter((line) => {
           // Find the URL in the line
-          const parsed =
-            /^(\S+) (\S+) (\S+) \[([\w:/]+\s[+\-]\d{4})\] (\S+) (\S+)\s*(\S+)?\s* (\d{3}) (\S+) "([^"]+)" "([^"]+)"/.exec(
-              line
-            );
+          const parsed = COMBINED_LOG_REGEX.exec(line);
           if (parsed) {
             const uri = parsed[6];
 

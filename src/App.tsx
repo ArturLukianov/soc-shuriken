@@ -1,51 +1,46 @@
-import { useState } from "react";
-import { closestCenter, DndContext, DragOverlay } from "@dnd-kit/core";
+import { useEffect, useState } from "react";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "./components/ui/card";
+  closestCenter,
+  CollisionDetection,
+  defaultDropAnimationSideEffects,
+  DndContext,
+  DragEndEvent,
+  DragMoveEvent,
+  DragOverlay,
+  DragStartEvent,
+  DropAnimation,
+  Modifier,
+  KeyboardSensor,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Input } from "./components/ui/input";
 import { Button } from "./components/ui/button";
 import { ThemeProvider } from "./components/theme-provider";
 import { Editor } from "@monaco-editor/react";
 import { Operation, RecipeOperation } from "./lib/types";
-import { RecipeBuilder } from "./components/RecipeBuilder";
-import { OperationList } from "./components/OperationList";
 import {
-  CakeIcon,
-  CakeSlice,
+  RECIPE_AREA_ID,
+  RecipeBuilder,
+  StepCard,
+} from "./components/RecipeBuilder";
+import { OperationPalette } from "./components/OperationPalette";
+import {
   CakeSliceIcon,
+  CheckIcon,
   CogIcon,
+  DatabaseIcon,
   KeyIcon,
-  RefreshCwIcon,
+  Share2Icon,
 } from "lucide-react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "./components/ui/resizable";
-import { ExtractIPs } from "./operations/ExtractIPs";
-import { Base64Decode, Base64Encode } from "./operations/Base64";
-import {
-  CutField,
-  DuplicateLines,
-  ExtractRegex,
-  Grep,
-  GrepNot,
-  GrepRegex,
-  Sort,
-  SquashSpaces,
-  UniqueLines,
-} from "./operations/Utility";
-import { AbuseIPDBCheckIPs } from "./operations/AbuseIPDB";
-import { OpenTIPLookup } from "./operations/OpenTip";
-import { randomUUID } from "crypto";
-import { v4 as uuidv4 } from "uuid";
-import { XORWithKey } from "./operations/XOR";
-import { Toggle } from "./components/ui/toggle";
-import { Switch } from "./components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -56,54 +51,81 @@ import {
   DialogTrigger,
 } from "./components/ui/dialog";
 import { Label } from "./components/ui/label";
-import {
-  ExtractFieldFromHTTPLogs,
-  MatchHTTPField,
-  RemoveStaticHTTPContentFromLogs,
-} from "./operations/HTTPLogs";
-import { ScrollArea } from "./components/ui/scroll-area";
-import { OperationItem } from "./components/OperationItem";
-import { UserAgentParser } from "./operations/UserAgent";
+import { OperationCard } from "./components/OperationItem";
 import { ApiKeys, SettingsManager } from "./lib/settings";
-import { JSONExtract } from "./operations/JSON";
-import { LeakCheckEmails } from "./operations/LeakCheck";
-import { ExtractEmails } from "./operations/ExtractEmails";
-import { IPInfo } from "./operations/IPInfo";
-import { ThreatbookCheckIP } from "./operations/ThreatBook";
+import { LookupCache } from "./lib/cache";
+import { operations } from "./operations";
+import { createStep, readUrlState, writeUrlState } from "./lib/recipe";
 
-const operations: Operation[] = [
-  AbuseIPDBCheckIPs,
-  OpenTIPLookup,
-  ExtractIPs,
-  ExtractEmails,
-  Base64Decode,
-  Base64Encode,
-  // SHA256Hash,
-  // SHA512Hash,
-  // MD5Hash,
-  XORWithKey,
-  UniqueLines,
-  CutField,
-  SquashSpaces,
-  Sort,
-  Grep,
-  GrepNot,
-  GrepRegex,
-  ExtractRegex,
-  ExtractFieldFromHTTPLogs,
-  MatchHTTPField,
-  RemoveStaticHTTPContentFromLogs,
-  UserAgentParser,
-  JSONExtract,
-  LeakCheckEmails,
-  DuplicateLines,
-  IPInfo,
-  ThreatbookCheckIP,
-];
+type ActiveDrag =
+  | { type: "operation"; operation: Operation }
+  | { type: "step"; step: RecipeOperation };
+
+// Reordering steps snaps to the nearest step; palette drags only count when
+// the pointer is inside the recipe area (the insert position is computed
+// separately from the pointer, see getInsertIndex).
+const collisionDetection: CollisionDetection = (args) => {
+  if (args.active.data.current?.type === "step") {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (container) => container.data.current?.type === "step",
+      ),
+    });
+  }
+  return pointerWithin({
+    ...args,
+    droppableContainers: args.droppableContainers.filter(
+      (container) => container.id === RECIPE_AREA_ID,
+    ),
+  });
+};
+
+// Index of the first step whose vertical midpoint is below the pointer
+function getInsertIndex({ active, activatorEvent, delta }: DragMoveEvent) {
+  let y: number;
+  if (activatorEvent instanceof PointerEvent) {
+    y = activatorEvent.clientY + delta.y;
+  } else {
+    const rect = active.rect.current.translated;
+    if (!rect) return null;
+    y = rect.top + rect.height / 2;
+  }
+  const steps = document.querySelectorAll("[data-recipe-step]");
+  let index = 0;
+  for (const step of steps) {
+    const rect = step.getBoundingClientRect();
+    if (y > rect.top + rect.height / 2) index++;
+  }
+  return index;
+}
+
+// Only the recipe list may auto-scroll; otherwise dragging near the bottom of
+// the screen scrolls the operations list out from under the cursor
+const autoScroll = {
+  canScroll: (element: Element) => element.hasAttribute("data-recipe-scroll"),
+};
+
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({
+  ...transform,
+  x: 0,
+});
+
+const stepDropAnimation: DropAnimation = {
+  sideEffects: defaultDropAnimationSideEffects({
+    styles: { active: { opacity: "0.3" } },
+  }),
+};
 
 function SettingsDialog() {
   const [keys, setKeys] = useState<ApiKeys>(SettingsManager.getKeys());
-  const [open, onOpenChange] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [cachedCount, setCachedCount] = useState(0);
+
+  const onOpenChange = (next: boolean) => {
+    if (next) setCachedCount(LookupCache.count());
+    setOpen(next);
+  };
 
   const handleSave = () => {
     SettingsManager.saveKeys(keys);
@@ -244,6 +266,33 @@ function SettingsDialog() {
               placeholder="Enter ThreatBook API key"
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4 rounded-md border px-3 py-2">
+            <div className="text-sm">
+              <div className="flex items-center gap-1">
+                <DatabaseIcon
+                  size={24}
+                  className="bg-blue-900 text-blue-300 p-1 rounded-lg"
+                />
+                Lookup cache
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                API results are reused for 24 hours.{" "}
+                {cachedCount} cached result{cachedCount === 1 ? "" : "s"}.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={cachedCount === 0}
+              onClick={() => {
+                LookupCache.clear();
+                setCachedCount(0);
+              }}
+            >
+              Clear cache
+            </Button>
+          </div>
         </div>
         <DialogFooter>
           <Button type="submit" onClick={handleSave}>
@@ -260,99 +309,216 @@ function App() {
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [infos, setInfos] = useState<Record<string, string>>({});
   const [state, setState] = useState("idle");
-  const [search, setSearch] = useState("");
 
-  const [activeOperation, setActiveOperation] = useState<Operation | null>(
-    null,
-  );
+  const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
+  const [insertIndex, setInsertIndex] = useState<number | null>(null);
+  // Kept after the drag ends so the overlay's drop animation can finish
+  const [lastDragType, setLastDragType] = useState<ActiveDrag["type"]>();
 
-  const handleDragStart = (event: any) => {
-    setActiveOperation(event.active.data.current.operation);
+  // Recipe and input are persisted in the URL hash (see lib/recipe.ts)
+  const [urlLoaded, setUrlLoaded] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [inputOmitted, setInputOmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const loaded = await readUrlState();
+      setRecipe(loaded.recipe);
+      setInput(loaded.input);
+      setErrors({});
+      setInfos({});
+      setNotice(loaded.warnings.length > 0 ? loaded.warnings.join(" ") : null);
+      setUrlLoaded(true);
+    };
+    load();
+    // Fires when a different link is pasted into this tab
+    window.addEventListener("hashchange", load);
+    return () => window.removeEventListener("hashchange", load);
+  }, []);
+
+  useEffect(() => {
+    if (!urlLoaded) return;
+    const timeout = setTimeout(async () => {
+      const { inputOmitted } = await writeUrlState(recipe, input);
+      setInputOmitted(inputOmitted);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [recipe, input, urlLoaded]);
+
+  const shareLink = async () => {
+    // Flush pending edits before copying
+    const { inputOmitted } = await writeUrlState(recipe, input);
+    setInputOmitted(inputOmitted);
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setNotice(
+        "Could not copy to clipboard; copy the link from the address bar.",
+      );
+    }
   };
 
-  const handleDragEnd = (event: any) => {
-    const { active, over, delta } = event;
-    console.log(delta.x);
+  const sensors = useSensors(
+    // Small distance so clicks on step buttons/inputs don't start a drag
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
-    // Only add if dropped into the recipe area
-    if (
-      over?.id === "recipe-area" &&
-      active.data.current?.operation &&
-      delta.x > 350
-    ) {
-      let state: Record<string, string> = {};
-      if (active.data.current?.operation.options) {
-        for (const option of active.data.current?.operation.options) {
-          state[option.name] = option.default;
-        }
-      }
+  const resetDrag = () => {
+    setActiveDrag(null);
+    setInsertIndex(null);
+  };
 
-      const newOperation: RecipeOperation = {
-        id: uuidv4(),
-        state: state,
-        ...active.data.current.operation,
-      };
-      setRecipe([...recipe, newOperation]);
+  const handleDragStart = ({ active }: DragStartEvent) => {
+    const data = active.data.current;
+    setLastDragType(data?.type);
+    if (data?.type === "operation") {
+      setActiveDrag({ type: "operation", operation: data.operation });
+    } else if (data?.type === "step") {
+      setActiveDrag({ type: "step", step: data.operation });
     }
+  };
+
+  // While dragging from the palette, track where the operation would land
+  const handleDragMove = (event: DragMoveEvent) => {
+    if (event.active.data.current?.type !== "operation") return;
+    const next =
+      event.over?.id === RECIPE_AREA_ID ? getInsertIndex(event) : null;
+    if (next !== insertIndex) setInsertIndex(next);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    const index = insertIndex;
+    resetDrag();
+    if (!over) return;
+
+    if (active.data.current?.type === "step") {
+      if (active.id === over.id) return;
+      const from = recipe.findIndex((op) => op.id === active.id);
+      const to = recipe.findIndex((op) => op.id === over.id);
+      if (from !== -1 && to !== -1) {
+        setRecipe(arrayMove(recipe, from, to));
+      }
+      return;
+    }
+
+    const operation: Operation | undefined = active.data.current?.operation;
+    if (!operation || over.id !== RECIPE_AREA_ID) return;
+
+    const newOperation = createStep(operation);
+    const insertAt = index ?? recipe.length;
+    setRecipe([
+      ...recipe.slice(0, insertAt),
+      newOperation,
+      ...recipe.slice(insertAt),
+    ]);
   };
 
   const runRecipe = async () => {
     let data = input;
     setState("wip");
 
-    let errors: Record<string, string> = {};
+    const errors: Record<string, string> = {};
+    const infos: Record<string, string> = {};
 
-    for (const operation of recipe) {
-      const { result, error } = await operation.run(data, operation.state);
-      if (error) {
-        errors[operation.id] = error;
-        setErrors(errors);
-        break;
+    try {
+      for (const operation of recipe) {
+        if (operation.disabled) continue;
+        try {
+          const { result, error, info } = await operation.run(
+            data,
+            operation.state,
+          );
+          if (info) infos[operation.id] = info;
+          if (error) {
+            errors[operation.id] = error;
+            break;
+          }
+          data = result;
+        } catch (e) {
+          errors[operation.id] = e instanceof Error ? e.message : String(e);
+          break;
+        }
       }
-      data = result;
+      setOutput(data);
+    } finally {
+      setErrors(errors);
+      setInfos(infos);
+      setState("idle");
     }
-    setErrors(errors);
-
-    setOutput(data);
-    setState("idle");
   };
 
   return (
     <DndContext
+      sensors={sensors}
+      autoScroll={autoScroll}
+      onDragMove={handleDragMove}
       onDragEnd={handleDragEnd}
-      collisionDetection={closestCenter}
+      onDragCancel={resetDrag}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
     >
       <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
         <div className="min-h-screen p-4">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-2rem)]">
             {/* Operations Panel */}
-            <div className="flex flex-col gap-3 mt-2">
+            <div className="flex min-h-0 flex-col gap-3 mt-2">
               <div className="flex-row flex w-full">
                 <SettingsDialog />
               </div>
-              <Input
-                placeholder="Search operations..."
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <div className="h-[calc(100vh-9rem)] overflow-y-scroll overflow-x-hidden pe-2">
-                <OperationList operations={operations} search={search} />
-              </div>
+              <OperationPalette operations={operations} />
             </div>
 
             <div className="mt-2">
-              <div className="w-full mb-3 flex flex-row space-x-3">
-                <Button className="w-full" size="lg" onClick={runRecipe}>
+              <div className="w-full mb-3 flex flex-row gap-2">
+                <Button className="flex-1" size="lg" onClick={runRecipe}>
                   <CakeSliceIcon />
                   Run Recipe
                 </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="px-4"
+                  onClick={shareLink}
+                  title="Copy a link to this recipe and input"
+                >
+                  {copied ? <CheckIcon /> : <Share2Icon />}
+                  {copied ? "Copied" : "Share"}
+                </Button>
               </div>
+              {(notice || inputOmitted) && (
+                <div className="mb-3 flex items-start gap-2 rounded-md border border-amber-900 bg-amber-950/40 px-3 py-2 text-xs text-amber-300">
+                  <span className="flex-1">
+                    {notice}
+                    {notice && inputOmitted && " "}
+                    {inputOmitted &&
+                      "Input is too large to store in the URL: it won't survive a reload or be included in shared links."}
+                  </span>
+                  {notice && (
+                    <button
+                      className="text-amber-500 hover:text-amber-300"
+                      aria-label="Dismiss"
+                      onClick={() => setNotice(null)}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              )}
               <RecipeBuilder
                 recipe={recipe}
                 onUpdate={setRecipe}
                 errors={errors}
+                infos={infos}
+                insertIndex={insertIndex}
               />
             </div>
 
@@ -403,8 +569,27 @@ function App() {
           </div>
         </div>
 
-        <DragOverlay zIndex={999}>
-          {activeOperation && <OperationItem operation={activeOperation} />}
+        <DragOverlay
+          zIndex={999}
+          // Palette cards land in the recipe, so don't animate them back
+          dropAnimation={
+            lastDragType === "operation" ? null : stepDropAnimation
+          }
+          modifiers={lastDragType === "step" ? [restrictToVerticalAxis] : []}
+        >
+          {activeDrag?.type === "step" && (
+            <StepCard
+              operation={activeDrag.step}
+              error={errors[activeDrag.step.id]}
+              className="cursor-grabbing shadow-2xl ring-1 ring-primary/40"
+            />
+          )}
+          {activeDrag?.type === "operation" && (
+            <OperationCard
+              operation={activeDrag.operation}
+              className="cursor-grabbing shadow-2xl"
+            />
+          )}
         </DragOverlay>
       </ThemeProvider>
     </DndContext>
